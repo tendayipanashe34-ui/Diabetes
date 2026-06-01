@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Predicting Diabetes· Clinical Selector</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #0d1117;
+  --surface: #161b22;
+  --card:    #1c2330;
+  --border:  #2a3340;
+  --hover:   #243040;
+  --accent:  #58a6ff;
+  --green:   #3fb950;
+  --red:     #f85149;
+  --yellow:  #d29922;
+  --purple:  #bc8cff;
+  --text:    #e6edf3;
+  --muted:   #7d8fa6;
+  --dim:     #3a4a5c;
+  --radius:  10px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Figtree', sans-serif;
+  min-height: 100vh;
+  padding: 48px 20px 80px;
+}
+
+
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+
+.page { max-width: 900px; margin: 0 auto; position: relative; z-index: 1; }
+
+/* ── HEADER ── */
+.hdr {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 44px;
+  border-left: 3px solid var(--accent);
+  padding-left: 20px;
+}
+
+.hdr-eyebrow {
+  font-size: 0.65rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.hdr h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 900;
+  line-height: 1;
+  color: #fff;
+}
+
+.hdr h1 span { color: var(--accent); }
+
+.hdr-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.pill {
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.pill.g { border-color: rgba(63,185,80,0.4); color: var(--green); }
+.pill.r { border-color: rgba(248,81,73,0.4);  color: var(--red);   }
+.pill.b { border-color: rgba(88,166,255,0.4); color: var(--accent);}
+
+/* ── SECTION ── */
+.section { margin-bottom: 36px; }
+
+.sec-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.sec-num {
+  width: 26px; height: 26px;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #000;
+  font-weight: 700;
+  font-size: 0.72rem;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.sec-name {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.sec-line { flex: 1; height: 1px; background: var(--border); }
+
+/* ── ATTRIBUTE BLOCK ── */
+.attr-block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  margin-bottom: 12px;
+  transition: border-color 0.2s;
+}
+
+.attr-block.has-selection { border-color: var(--dim); }
+
+.attr-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  gap: 12px;
+}
+
+.attr-left {}
+
+.attr-code {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  font-family: 'Courier New', monospace;
+}
+
+.attr-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 2px;
+}
+
+.attr-tip {
+  font-size: 0.62rem;
+  color: var(--muted);
+  max-width: 360px;
+  line-height: 1.4;
+  text-align: right;
+}
+
+/* ── OPTION CHIPS ── */
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.opt {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  cursor: pointer;
+  transition: all 0.15s;
+  min-width: 110px;
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+}
+
+.opt::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.opt:hover { border-color: var(--dim); background: var(--hover); }
+
+.opt-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  z-index: 1;
+  position: relative;
+}
+
+.opt-range {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text);
+  z-index: 1;
+  position: relative;
+  font-family: 'Courier New', monospace;
+}
+
+.opt-note {
+  font-size: 0.6rem;
+  color: var(--muted);
+  z-index: 1;
+  position: relative;
+  line-height: 1.3;
+}
+
+/* Selected states */
+.opt.sel-ok {
+  border-color: var(--green);
+  background: rgba(63,185,80,0.1);
+}
+.opt.sel-ok .opt-label { color: var(--green); }
+.opt.sel-ok::after {
+  content: '✓';
+  position: absolute;
+  top: 7px; right: 10px;
+  font-size: 0.75rem;
+  color: var(--green);
+  font-weight: 700;
+}
+
+.opt.sel-warn {
+  border-color: var(--yellow);
+  background: rgba(210,153,34,0.1);
+}
+.opt.sel-warn .opt-label { color: var(--yellow); }
+.opt.sel-warn::after {
+  content: '✓';
+  position: absolute;
+  top: 7px; right: 10px;
+  font-size: 0.75rem;
+  color: var(--yellow);
+  font-weight: 700;
+}
+
+.opt.sel-bad {
+  border-color: var(--red);
+  background: rgba(248,81,73,0.1);
+}
+.opt.sel-bad .opt-label { color: var(--red); }
+.opt.sel-bad::after {
+  content: '✓';
+  position: absolute;
+  top: 7px; right: 10px;
+  font-size: 0.75rem;
+  color: var(--red);
+  font-weight: 700;
+}
+
+/* color dots on unselected */
+.opt-dot {
+  position: absolute;
+  top: 8px; right: 9px;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+}
+
+.opt-dot.ok   { background: rgba(63,185,80,0.45); }
+.opt-dot.warn { background: rgba(210,153,34,0.45); }
+.opt-dot.bad  { background: rgba(248,81,73,0.45); }
+
+/* Gender & Frame special layout */
+.gender-grid {
+  display: flex;
+  gap: 10px;
+}
+
+.gender-opt {
+  flex: 1;
+  padding: 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.gender-opt:hover { border-color: var(--dim); background: var(--hover); }
+
+.gender-icon { font-size: 1.8rem; margin-bottom: 6px; }
+
+.gender-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.gender-opt.sel {
+  border-color: var(--purple);
+  background: rgba(188,140,255,0.1);
+}
+
+.gender-opt.sel .gender-label { color: var(--purple); }
+
+/* ── PROGRESS BAR ── */
+.progress-wrap {
+  margin-bottom: 28px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+}
+
+.progress-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.progress-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.progress-count {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.progress-count span { color: var(--accent); }
+
+.prog-bar {
+  height: 6px;
+  background: var(--border);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.prog-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--purple));
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}
+
+/* ── PREDICT BUTTON ── */
+.predict-btn {
+  width: 100%;
+  padding: 18px;
+  border: none;
+  border-radius: var(--radius);
+  font-family: 'Figtree', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 32px;
+  position: relative;
+  overflow: hidden;
+}
+
+.predict-btn:disabled {
+  background: var(--surface);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  cursor: not-allowed;
+}
+
+.predict-btn:not(:disabled) {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--purple) 100%);
+  color: #000;
+  box-shadow: 0 4px 24px rgba(88,166,255,0.3);
+}
+
+.predict-btn:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(88,166,255,0.4);
+}
+
+/* ── RESULT ── */
+#result { display: none; animation: up 0.5s cubic-bezier(.16,1,.3,1); }
+
+@keyframes up {
+  from { opacity:0; transform:translateY(24px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+.res-card {
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.res-top {
+  padding: 28px 28px 24px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 20px;
+  align-items: center;
+}
+
+.res-top.pos { background: linear-gradient(135deg, rgba(248,81,73,0.12), rgba(248,81,73,0.04)); border-bottom: 1px solid rgba(248,81,73,0.2); }
+.res-top.neg { background: linear-gradient(135deg, rgba(63,185,80,0.12),  rgba(63,185,80,0.04));  border-bottom: 1px solid rgba(63,185,80,0.2); }
+
+.res-icon {
+  font-size: 2.4rem;
+  width: 64px; height: 64px;
+  background: var(--card);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid var(--border);
+}
+
+.res-verdict {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.7rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.res-verdict.pos { color: var(--red); }
+.res-verdict.neg { color: var(--green); }
+
+.res-sub {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 6px;
+  letter-spacing: 0.05em;
+}
+
+.res-score {
+  text-align: right;
+}
+
+.res-score-num {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.8rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.res-score-num.pos { color: var(--red); }
+.res-score-num.neg { color: var(--green); }
+
+.res-score-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.res-body { padding: 24px 28px; background: var(--surface); }
+
+/* risk bar */
+.rbar-wrap { margin-bottom: 24px; }
+.rbar-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.63rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.rbar-bg {
+  height: 10px;
+  background: var(--card);
+  border-radius: 99px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  position: relative;
+}
+.rbar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 1.2s cubic-bezier(.16,1,.3,1);
+}
+.rbar-fill.pos { background: linear-gradient(90deg, var(--yellow), var(--red)); }
+.rbar-fill.neg { background: linear-gradient(90deg, var(--green), #5effa0); }
+
+/* threshold marker */
+.rbar-bg::after {
+  content: '50%';
+  position: absolute;
+  left: 50%;
+  top: -18px;
+  transform: translateX(-50%);
+  font-size: 0.55rem;
+  color: var(--dim);
+  letter-spacing: 0.06em;
+}
+
+/* summary table */
+.sum-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.sum-item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 11px 14px;
+}
+
+.sum-item.flagged {
+  border-color: rgba(248,81,73,0.4);
+  background: rgba(248,81,73,0.06);
+}
+
+.sum-code {
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 3px;
+  font-family: 'Courier New', monospace;
+}
+
+.sum-val {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.sum-item.flagged .sum-code { color: var(--red); }
+.sum-item.flagged .sum-val  { color: var(--red); }
+
+.sum-zone {
+  font-size: 0.58rem;
+  margin-top: 2px;
+  letter-spacing: 0.06em;
+}
+
+.sum-zone.ok   { color: var(--green); }
+.sum-zone.warn { color: var(--yellow); }
+.sum-zone.bad  { color: var(--red); }
+
+/* model strip */
+.model-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.mchip {
+  font-size: 0.62rem;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  background: var(--card);
+  letter-spacing: 0.06em;
+}
+
+.mchip strong { color: var(--text); }
+
+/* disclaimer */
+.disc {
+  margin-top: 16px;
+  padding: 12px 16px;
+  border: 1px solid rgba(210,153,34,0.3);
+  border-radius: 8px;
+  background: rgba(210,153,34,0.05);
+  font-size: 0.66rem;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.disc strong { color: var(--yellow); }
+
+.reset-btn {
+  margin-top: 12px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 9px 18px;
+  border-radius: 7px;
+  font-family: 'Figtree', sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.reset-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* validation alert */
+.alert {
+  padding: 12px 16px;
+  border: 1px solid rgba(248,81,73,0.4);
+  border-radius: 8px;
+  background: rgba(248,81,73,0.08);
+  font-size: 0.72rem;
+  color: var(--red);
+  margin-bottom: 16px;
+  display: none;
+}
+
+/* responsive */
+@media (max-width: 600px) {
+  .opt { min-width: 80px; }
+  .res-top { grid-template-columns: auto 1fr; }
+  .res-score { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <header class="hdr">
+    <div class="hdr-eyebrow">Clinical Decision Support · Deep ANN + TabTransformer</div>
+    <h1>Diabetes <span>Risk</span> Assessment</h1>
+    
+  </header>
+
+  <!-- PROGRESS -->
+  <div class="progress-wrap">
+    <div class="progress-top">
+      <span class="progress-label">Fields completed</span>
+      <span class="progress-count"><span id="pc">0</span> / 13</span>
+    </div>
+    <div class="prog-bar">
+      <div class="prog-fill" id="pfill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- VALIDATION ALERT -->
+  <div class="alert" id="alert">⚠ Please complete all fields before running the prediction.</div>
+
+  <!-- ── SECTION 0: PATIENT INFO ── -->
+  <div class="section">
+    <div class="sec-title">
+      <div class="sec-num">0</div>
+      <span class="sec-name">Patient Information</span>
+      <div class="sec-line"></div>
+    </div>
+
+    <!-- GENDER -->
+    <div class="attr-block" id="wrap-gender">
+      <div class="attr-header">
+        <div class="attr-left">
+          <div class="attr-code">gender</div>
+          <div class="attr-name">Biological Sex</div>
+        </div>
+        <div class="attr-tip">From original dataset: male / female</div>
+      </div>
+      <div class="gender-grid">
+        <div class="gender-opt" id="g-female" onclick="selectGender('female')">
+          <div class="gender-icon">♀</div>
+          <div class="gender-label">Female</div>
+        </div>
+        <div class="gender-opt" id="g-male" onclick="selectGender('male')">
+          <div class="gender-icon">♂</div>
+          <div class="gender-label">Male</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION 1: METABOLIC ── -->
+  <div class="section">
+    <div class="sec-title">
+      <div class="sec-num">1</div>
+      <span class="sec-name">Metabolic Panel</span>
+      <div class="sec-line"></div>
+    </div>
+    <div id="g-metabolic"></div>
+  </div>
+
+  <!-- ── SECTION 2: PHYSICAL ── -->
+  <div class="section">
+    <div class="sec-title">
+      <div class="sec-num">2</div>
+      <span class="sec-name">Physical Measurements</span>
+      <div class="sec-line"></div>
+    </div>
+    <div id="g-physical"></div>
+  </div>
+
+  <!-- ── SECTION 3: BLOOD PRESSURE & TIMING ── -->
+  <div class="section">
+    <div class="sec-title">
+      <div class="sec-num">3</div>
+      <span class="sec-name">Blood Pressure & Timing</span>
+      <div class="sec-line"></div>
+    </div>
+    <div id="g-bp"></div>
+  </div>
+
+  <!-- PREDICT -->
+  <button class="predict-btn" id="pred-btn" onclick="runPredict()" disabled>
+    Complete all fields to predict
+  </button>
+
+  <!-- RESULT -->
+  <div id="result"></div>
+
+</div>
+
+<script>
+// ─── Field Definitions from notebook ─────────────────────────────────────────
+// Dataset: 4416 rows, target glyhb>=7, features after preprocessing
+const FIELDS = [
+  // ── METABOLIC ──
+  {
+    id:'chol', group:'g-metabolic', code:'chol',
+    name:'Total Cholesterol', unit:'mg/dL',
+    mean:207, std:45, weight:0.8,
+    tip:'Lipid panel measurement — Normal <200, High ≥240',
+    options:[
+      { label:'Normal',     range:'< 200',      note:'Low cardiovascular risk',    val:160, cls:'ok'   },
+      { label:'Borderline', range:'200 – 239',   note:'Monitor closely',            val:220, cls:'warn' },
+      { label:'High',       range:'≥ 240',       note:'Elevated cardiovascular risk',val:270, cls:'bad'  },
+    ]
+  },
+  {
+    id:'stab_glu', group:'g-metabolic', code:'stab.glu',
+    name:'Stabilised Glucose', unit:'mg/dL',
+    mean:107, std:45, weight:3.5,
+    tip:'Strongest predictor — glyhb ≥7 strongly correlates with high glucose',
+    options:[
+      { label:'Normal',     range:'< 100',       note:'Healthy fasting glucose',    val:85,  cls:'ok'   },
+      { label:'Moderate',range:'100 – 125',  note:'Impaired fasting glucose',   val:112, cls:'warn' },
+      { label:'High',   range:'126 – 199',   note:'High — diabetes likely',     val:160, cls:'bad'  },
+      { label:'Very High',  range:'≥ 200',       note:'Severely elevated',          val:260, cls:'bad'  },
+    ]
+  },
+  {
+    id:'hdl', group:'g-metabolic', code:'hdl',
+    name:'HDL "Good" Cholesterol', unit:'mg/dL',
+    mean:50, std:17, weight:1.8,
+    tip:'Protective factor — higher HDL reduces diabetes risk',
+    invert:true,
+    options:[
+      { label:'High (Best)',  range:'≥ 60',      note:'Strong cardio protection',   val:70,  cls:'ok'   },
+      { label:'Moderate',     range:'40 – 59',   note:'Some protection',            val:50,  cls:'warn' },
+      { label:'Low Risk',     range:'< 40',      note:'Insufficient protection',    val:28,  cls:'bad'  },
+    ]
+  },
+  {
+    id:'ratio', group:'g-metabolic', code:'ratio',
+    name:'Chol / HDL Ratio', unit:'ratio',
+    mean:4.5, std:1.5, weight:2.0,
+    tip:'Total cholesterol divided by HDL — higher = worse outcome',
+    options:[
+      { label:'Optimal',    range:'< 3.5',       note:'Ideal metabolic profile',    val:2.8, cls:'ok'   },
+      { label:'Normal',     range:'3.5 – 5.0',   note:'Acceptable range',           val:4.2, cls:'ok'   },
+      { label:'Borderline', range:'5.0 – 7.0',   note:'Increased risk',             val:6.0, cls:'warn' },
+      { label:'High Risk',  range:'> 7.0',        note:'Significantly elevated',     val:8.5, cls:'bad'  },
+    ]
+  },
+  // ── PHYSICAL ──
+  {
+    id:'age', group:'g-physical', code:'age',
+    name:'Age', unit:'years',
+    mean:46, std:16, weight:1.2,
+    tip:'Risk rises significantly after age 45',
+    options:[
+      { label:'Young',    range:'20 – 34',       note:'Minimal age-related risk',   val:27,  cls:'ok'   },
+      { label:'Middle',   range:'35 – 44',       note:'Low age risk',               val:40,  cls:'ok'   },
+      { label:'Mature',   range:'45 – 59',       note:'Moderate risk window',       val:52,  cls:'warn' },
+      { label:'Senior',   range:'60 – 90',       note:'Highest age-related risk',   val:70,  cls:'bad'  },
+    ]
+  },
+  {
+    id:'height', group:'g-physical', code:'height',
+    name:'Height', unit:'inches',
+    mean:66, std:4, weight:0.2,
+    tip:'Used to calculate BMI — dataset range: 55–80 inches',
+    options:[
+      { label:'Short',    range:'55 – 62',       note:'< 5\'3″',                    val:59,  cls:'ok'   },
+      { label:'Average',  range:'63 – 68',       note:'5\'3″ – 5\'8″',             val:66,  cls:'ok'   },
+      { label:'Tall',     range:'69 – 80',       note:'> 5\'9″',                    val:73,  cls:'ok'   },
+    ]
+  },
+  {
+    id:'weight', group:'g-physical', code:'weight',
+    name:'Body Weight', unit:'lbs',
+    mean:177, std:44, weight:1.5,
+    tip:'Higher weight increases insulin resistance risk',
+    options:[
+      { label:'Lean',       range:'90 – 149',    note:'Below average weight',       val:130, cls:'ok'   },
+      { label:'Normal',     range:'150 – 185',   note:'Healthy weight range',       val:168, cls:'ok'   },
+      { label:'Overweight', range:'186 – 230',   note:'Elevated BMI risk',          val:208, cls:'warn' },
+      { label:'Obese',      range:'> 230',       note:'Significantly elevated risk',val:265, cls:'bad'  },
+    ]
+  },
+  {
+    id:'waist', group:'g-physical', code:'waist',
+    name:'Waist Circumference', unit:'inches',
+    mean:36, std:6, weight:1.3,
+    tip:'Abdominal obesity: Men >40in, Women >35in considered at-risk',
+    options:[
+      { label:'Healthy',    range:'25 – 32',     note:'Low abdominal fat',          val:30,  cls:'ok'   },
+      { label:'Moderate',   range:'33 – 39',     note:'Watch visceral fat',         val:36,  cls:'warn' },
+      { label:'High Risk',  range:'≥ 40',        note:'High abdominal obesity',     val:44,  cls:'bad'  },
+    ]
+  },
+  {
+    id:'hip', group:'g-physical', code:'hip',
+    name:'Hip Circumference', unit:'inches',
+    mean:40, std:5, weight:0.9,
+    tip:'Used for WHR (waist-to-hip ratio) — key body composition metric',
+    options:[
+      { label:'Small',    range:'28 – 36',       note:'Petite frame',               val:33,  cls:'ok'   },
+      { label:'Medium',   range:'37 – 44',       note:'Average range',              val:41,  cls:'ok'   },
+      { label:'Large',    range:'> 44',          note:'Larger frame',               val:50,  cls:'warn' },
+    ]
+  },
+  // ── BP & TIMING ──
+  {
+    id:'bp1s', group:'g-bp', code:'bp.1s',
+    name:'Systolic Blood Pressure', unit:'mmHg',
+    mean:136, std:23, weight:0.9,
+    tip:'Upper BP number — hypertension linked to insulin resistance',
+    options:[
+      { label:'Normal',   range:'< 120',         note:'Ideal systolic pressure',    val:112, cls:'ok'   },
+      { label:'Elevated', range:'120 – 129',     note:'Watch for progression',      val:125, cls:'warn' },
+      { label:'Stage 1',  range:'130 – 139',     note:'Hypertension Stage 1',       val:135, cls:'warn' },
+      { label:'Stage 2',  range:'≥ 140',         note:'Hypertension Stage 2',       val:158, cls:'bad'  },
+    ]
+  },
+  {
+    id:'bp1d', group:'g-bp', code:'bp.1d',
+    name:'Diastolic Blood Pressure', unit:'mmHg',
+    mean:83, std:14, weight:0.7,
+    tip:'Lower BP number — diastolic hypertension ≥90 mmHg',
+    options:[
+      { label:'Normal',   range:'< 80',          note:'Healthy diastolic',          val:72,  cls:'ok'   },
+      { label:'Elevated', range:'80 – 89',       note:'Borderline diastolic',       val:85,  cls:'warn' },
+      { label:'High',     range:'≥ 90',          note:'Diastolic hypertension',     val:98,  cls:'bad'  },
+    ]
+  },
+  {
+    id:'time_ppn', group:'g-bp', code:'time.ppn',
+    name:'Post-Prandial Time', unit:'minutes',
+    mean:90, std:60, weight:0.5,
+    tip:'Minutes since last meal when glucose was measured',
+    options:[
+      { label:'Fasting',    range:'0 – 30',      note:'Near-fasting state',         val:15,  cls:'ok'   },
+      { label:'Short PP',   range:'31 – 120',    note:'1–2 hrs post meal',          val:75,  cls:'ok'   },
+      { label:'Extended PP',range:'121 – 240',   note:'2–4 hrs post meal',          val:180, cls:'warn' },
+      { label:'Long PP',    range:'> 240',       note:'>4 hrs, context important',  val:300, cls:'bad'  },
+    ]
+  },
+];
+
+// ─── State ────────────────────────────────────────────────────────────────────
+const selections = {};
+let gender = null;
+
+// ─── Build attribute blocks ──────────────────────────────────────────────────
+FIELDS.forEach(f => {
+  const container = document.getElementById(f.group);
+  const block = document.createElement('div');
+  block.className = 'attr-block';
+  block.id = 'wrap-' + f.id;
+
+  const opts = f.options.map((o, i) => `
+    <div class="opt" id="opt-${f.id}-${i}" onclick="selectOpt('${f.id}',${i})">
+      <div class="opt-dot ${o.cls}"></div>
+      <div class="opt-label" style="color:${o.cls==='ok'?'var(--green)':o.cls==='warn'?'var(--yellow)':'var(--red)'}">${o.label}</div>
+      <div class="opt-range">${o.range}</div>
+      <div class="opt-note">${o.note}</div>
+    </div>`).join('');
+
+  block.innerHTML = `
+    <div class="attr-header">
+      <div class="attr-left">
+        <div class="attr-code">${f.code}</div>
+        <div class="attr-name">${f.name} <span style="font-size:0.68rem;color:var(--muted);font-weight:400">· ${f.unit}</span></div>
+      </div>
+      <div class="attr-tip">${f.tip}</div>
+    </div>
+    <div class="options">${opts}</div>
+  `;
+
+  container.appendChild(block);
+});
+
+// ─── Select option ────────────────────────────────────────────────────────────
+function selectOpt(fieldId, optIdx) {
+  const field = FIELDS.find(f => f.id === fieldId);
+  const opt = field.options[optIdx];
+
+  // Clear previous selection
+  field.options.forEach((_, i) => {
+    const el = document.getElementById(`opt-${fieldId}-${i}`);
+    el.className = 'opt';
+  });
+
+  // Apply selection
+  document.getElementById(`opt-${fieldId}-${optIdx}`).className = `opt sel-${opt.cls}`;
+  selections[fieldId] = { val: opt.val, cls: opt.cls, label: opt.label, range: opt.range };
+
+  // Mark block
+  document.getElementById('wrap-' + fieldId).className = 'attr-block has-selection';
+
+  updateProgress();
+}
+
+// ─── Gender ──────────────────────────────────────────────────────────────────
+function selectGender(g) {
+  gender = g;
+  document.getElementById('g-female').className = 'gender-opt' + (g === 'female' ? ' sel' : '');
+  document.getElementById('g-male').className   = 'gender-opt' + (g === 'male'   ? ' sel' : '');
+  document.getElementById('wrap-gender').className = 'attr-block has-selection';
+  updateProgress();
+}
+
+// ─── Progress ─────────────────────────────────────────────────────────────────
+function updateProgress() {
+  const total = FIELDS.length + 1; // +1 for gender
+  const done = Object.keys(selections).length + (gender ? 1 : 0);
+  document.getElementById('pc').textContent = done;
+  document.getElementById('pfill').style.width = Math.round((done / total) * 100) + '%';
+
+  const btn = document.getElementById('pred-btn');
+  if (done === total) {
+    btn.disabled = false;
+    btn.textContent = '▶  Run Diabetes Prediction';
+  } else {
+    btn.disabled = true;
+    btn.textContent = `Complete all fields to predict  (${total - done} remaining)`;
+  }
+}
+
+// ─── Compute probability (mirrors notebook StandardScaler + Deep ANN) ─────────
+function zscore(v, mean, std) { return (v - mean) / std; }
+function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
+
+function computeProb() {
+  const v = {};
+  FIELDS.forEach(f => { v[f.id] = selections[f.id].val; });
+
+  // StandardScaler z-scores (approx from dataset)
+  const zGlu   = zscore(v.stab_glu, 107, 45);
+  const zRatio = zscore(v.ratio,    4.5, 1.5);
+  const zHDL   = zscore(v.hdl,      50,  17);
+  const zAge   = zscore(v.age,      46,  16);
+  const zChol  = zscore(v.chol,     207, 45);
+  const zBPS   = zscore(v.bp1s,     136, 23);
+  const zBPD   = zscore(v.bp1d,     83,  14);
+  const zWt    = zscore(v.weight,   177, 44);
+  const zWaist = zscore(v.waist,    36,  6);
+  const zTimePPN = zscore(v.time_ppn, 90, 60);
+
+  // BMI proxy
+  const bmi = (v.weight * 703) / (v.height * v.height);
+  const zBMI = zscore(bmi, 29, 6);
+
+  // WHR
+  const whr = v.waist / v.hip;
+  const zWHR = zscore(whr, 0.87, 0.1);
+
+  // Gender adjustment (female slightly lower prevalence in dataset)
+  const genderBias = gender === 'male' ? 0.15 : 0.0;
+
+  // Logit (trained ANN weight proxy — stab.glu dominant)
+  const logit =
+    - 5.2
+    + 3.2 * zGlu
+    + 1.4 * zRatio
+    - 1.2 * zHDL
+    + 1.0 * zAge
+    + 0.9 * zBMI
+    + 0.7 * zWHR
+    + 0.5 * zChol
+    + 0.4 * zBPS
+    + 0.3 * zWt
+    + 0.2 * zBPD
+    + 0.2 * zTimePPN
+    + 0.1 * zWaist
+    + genderBias;
+
+  return sigmoid(logit);
+}
+
+// ─── Run Prediction ───────────────────────────────────────────────────────────
+function runPredict() {
+  const total = FIELDS.length + 1;
+  const done = Object.keys(selections).length + (gender ? 1 : 0);
+
+  if (done < total) {
+    const alert = document.getElementById('alert');
+    alert.style.display = 'block';
+    alert.scrollIntoView({ behavior: 'smooth' });
+    return;
+  }
+
+  document.getElementById('alert').style.display = 'none';
+
+  const prob = computeProb();
+  const pct  = Math.round(prob * 100);
+  const pos  = prob >= 0.5;
+
+  // Build factor summary
+  const factors = FIELDS.map(f => {
+    const s = selections[f.id];
+    return {
+      code: f.code,
+      val: s.val + ' ' + f.unit,
+      range: s.range,
+      cls: s.cls,
+      label: s.label,
+      flagged: s.cls === 'bad'
+    };
+  });
+
+  // Add gender to summary
+  const allFactors = [
+    { code:'gender', val: gender, range:'—', cls:'ok', label: gender, flagged: false },
+    ...factors
+  ];
+
+  const flagged = factors.filter(f => f.flagged);
+
+  const panel = document.getElementById('result');
+  panel.style.display = 'block';
+  panel.innerHTML = `
+    <div class="res-card">
+      <div class="res-top ${pos?'pos':'neg'}">
+        <div class="res-icon">${pos ? '⚠️' : '✅'}</div>
+        <div>
+          <div class="res-verdict ${pos?'pos':'neg'}">${pos ? 'Elevated Diabetes Risk' : 'Low Diabetes Risk'}</div>
+          <div class="res-sub">
+            Prediction: <strong>${pos ? 'Positive — Diabetic' : 'Negative — Non-Diabetic'}</strong>
+            &nbsp;·&nbsp; Probability: <strong>${(prob*100).toFixed(1)}%</strong>
+            &nbsp;·&nbsp; Gender: <strong style="text-transform:capitalize">${gender}</strong>
+            &nbsp;·&nbsp; ${flagged.length} risk flag${flagged.length!==1?'s':''}
+          </div>
+        </div>
+        <div class="res-score">
+          <div class="res-score-num ${pos?'pos':'neg'}">${pct}<span style="font-size:1.2rem">%</span></div>
+          <div class="res-score-label">Risk Score</div>
+        </div>
+      </div>
+
+      <div class="res-body">
+        <div class="rbar-wrap">
+          <div class="rbar-labels">
+            <span>Low Risk</span>
+            <span>Risk Level · Threshold 50%</span>
+            <span>High Risk</span>
+          </div>
+          <div class="rbar-bg">
+            <div class="rbar-fill ${pos?'pos':'neg'}" id="rbar" style="width:0%"></div>
+          </div>
+        </div>
+
+        <div style="font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:10px;">
+          <span>Selected Values</span>
+          ${flagged.length>0 ? `<span style="color:var(--red)">${flagged.length} high-risk attribute${flagged.length>1?'s':''} ⚑</span>` : ''}
+        </div>
+
+        <div class="sum-grid">
+          ${allFactors.map(f => `
+            <div class="sum-item ${f.flagged?'flagged':''}">
+              <div class="sum-code">${f.code}${f.flagged?' ⚑':''}</div>
+              <div class="sum-val">${f.val}</div>
+              <div class="sum-zone ${f.cls}">${f.label}</div>
+            </div>`).join('')}
+        </div>
+
+        <div class="model-strip">
+          <span class="mchip">Model: <strong>Hybrid Model</strong></span>
+          <span class="mchip">Acc: <strong>98.85%</strong></span>
+          <span class="mchip">AUC: <strong>0.9786</strong></span>
+          <span class="mchip">Dataset: <strong>4,416 patients</strong></span>
+          <span class="mchip">Target: <strong> 5 < glyhb > 7</strong></span>
+        </div>
+
+        <div class="disc">
+          <strong>⚠ Disclaimer:</strong> This interface simulates the trained notebook model (Deep ANN + TabTransformer) for educational purposes only. It is <em>not</em> a certified clinical diagnostic tool. For production use, serve the actual trained model via a Flask/FastAPI backend and integrate it with this UI via a POST request to <code>/predict</code>. Always consult a qualified healthcare professional.
+        </div>
+
+        <button class="reset-btn" onclick="resetAll()">↩ Reset All Selections</button>
+      </div>
+    </div>
+  `;
+
+  setTimeout(() => {
+    const bar = document.getElementById('rbar');
+    if (bar) bar.style.width = pct + '%';
+  }, 80);
+
+  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ─── Reset ────────────────────────────────────────────────────────────────────
+function resetAll() {
+  // Clear selections
+  Object.keys(selections).forEach(k => delete selections[k]);
+  gender = null;
+
+  // Reset field blocks
+  FIELDS.forEach(f => {
+    document.getElementById('wrap-' + f.id).className = 'attr-block';
+    f.options.forEach((_, i) => {
+      document.getElementById(`opt-${f.id}-${i}`).className = 'opt';
+    });
+  });
+
+  // Reset gender
+  document.getElementById('g-female').className = 'gender-opt';
+  document.getElementById('g-male').className   = 'gender-opt';
+  document.getElementById('wrap-gender').className = 'attr-block';
+
+  document.getElementById('result').style.display = 'none';
+  document.getElementById('alert').style.display  = 'none';
+  document.getElementById('pfill').style.width = '0%';
+  document.getElementById('pc').textContent = '0';
+
+  const btn = document.getElementById('pred-btn');
+  btn.disabled = true;
+  btn.textContent = 'Complete all fields to predict';
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>

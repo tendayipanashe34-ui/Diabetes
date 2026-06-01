@@ -1,0 +1,1513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diabetes · Clinical Prediction Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #080c10;
+  --surface:  #0e1420;
+  --card:     #131a26;
+  --border:   #1e2d40;
+  --hover:    #192030;
+  --accent:   #4f9eff;
+  --green:    #34d058;
+  --red:      #ff5c5c;
+  --yellow:   #f0b429;
+  --purple:   #a78bfa;
+  --text:     #dce8f5;
+  --muted:    #5c7a99;
+  --dim:      #2a3d52;
+  --radius:   12px;
+  --transition: 0.18s ease;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Geist', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ─── VIEWS ─────────────────────────────────────────────────────── */
+.view { display: none; }
+.view.active { display: flex; }
+
+/* ─── AUTH SCREEN ─────────────────────────────────────────────────── */
+#view-auth {
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(ellipse 70% 50% at 20% 10%, rgba(79,158,255,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 90%, rgba(167,139,250,0.07) 0%, transparent 55%),
+    var(--bg);
+  padding: 24px;
+}
+
+.auth-box {
+  width: 100%;
+  max-width: 440px;
+}
+
+.auth-brand {
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.brand-icon {
+  width: 44px; height: 44px;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.3rem;
+}
+
+.brand-name {
+  font-family: 'Instrument Serif', serif;
+  font-size: 1.7rem;
+  color: #fff;
+  letter-spacing: -0.5px;
+}
+
+.brand-sub {
+  font-size: 0.72rem;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* tabs */
+.auth-tabs {
+  display: flex;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 24px;
+}
+
+.auth-tab {
+  flex: 1;
+  padding: 9px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  font-family: 'Geist', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.auth-tab.active {
+  background: var(--card);
+  color: var(--text);
+  box-shadow: 0 1px 6px rgba(0,0,0,0.4);
+}
+
+/* form */
+.auth-form { display: none; }
+.auth-form.active { display: block; }
+
+.form-group { margin-bottom: 16px; }
+
+.form-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: 'Geist', sans-serif;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+.form-input::placeholder { color: var(--muted); }
+.form-input:focus { border-color: var(--accent); }
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 13px;
+  background: linear-gradient(135deg, var(--accent), #6b7fff);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-family: 'Geist', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: opacity var(--transition), transform var(--transition);
+  margin-top: 4px;
+}
+
+.btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+.auth-msg {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 7px;
+  font-size: 0.78rem;
+  display: none;
+  line-height: 1.4;
+}
+
+.auth-msg.error { background: rgba(255,92,92,0.1); border: 1px solid rgba(255,92,92,0.35); color: var(--red); }
+.auth-msg.ok    { background: rgba(52,208,88,0.1);  border: 1px solid rgba(52,208,88,0.35); color: var(--green); }
+
+.demo-hint {
+  margin-top: 20px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.68rem;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.demo-hint strong { color: var(--text); font-family: 'Geist Mono', monospace; }
+
+/* ─── APP SHELL ───────────────────────────────────────────────────── */
+#view-app {
+  flex-direction: row;
+  min-height: 100vh;
+}
+
+/* sidebar */
+.sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 24px 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.sb-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px 24px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.sb-brand-icon {
+  width: 34px; height: 34px;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.sb-brand-name {
+  font-family: 'Instrument Serif', serif;
+  font-size: 1.2rem;
+  color: #fff;
+}
+
+.sb-section {
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 20px;
+  margin-bottom: 6px;
+  margin-top: 16px;
+}
+
+.sb-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 20px;
+  cursor: pointer;
+  font-size: 0.84rem;
+  color: var(--muted);
+  transition: all var(--transition);
+  border-left: 3px solid transparent;
+  user-select: none;
+}
+
+.sb-link:hover { color: var(--text); background: var(--hover); }
+.sb-link.active { color: var(--accent); border-left-color: var(--accent); background: rgba(79,158,255,0.06); }
+
+.sb-link .ico { font-size: 1rem; width: 20px; text-align: center; }
+
+.sb-user {
+  margin-top: auto;
+  padding: 16px 20px 0;
+  border-top: 1px solid var(--border);
+}
+
+.sb-user-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sb-user-role {
+  font-size: 0.65rem;
+  color: var(--muted);
+  text-transform: capitalize;
+  margin-bottom: 10px;
+}
+
+.btn-logout {
+  width: 100%;
+  padding: 8px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--muted);
+  font-family: 'Geist', sans-serif;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+/* main content */
+.main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 36px 40px;
+  min-height: 100vh;
+}
+
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .main { padding: 20px 16px; }
+}
+
+/* panels */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ─── STATS CARDS ─────────────────────────────────────────────────── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 32px;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+}
+
+.stat-label {
+  font-size: 0.64rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.stat-val {
+  font-family: 'Instrument Serif', serif;
+  font-size: 2rem;
+  color: #fff;
+  line-height: 1;
+}
+
+.stat-val.red    { color: var(--red); }
+.stat-val.green  { color: var(--green); }
+.stat-val.yellow { color: var(--yellow); }
+.stat-val.blue   { color: var(--accent); }
+
+/* ─── PAGE HEADER ─────────────────────────────────────────────────── */
+.page-hdr {
+  margin-bottom: 28px;
+}
+
+.page-hdr h2 {
+  font-family: 'Instrument Serif', serif;
+  font-size: 1.9rem;
+  color: #fff;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.page-hdr p {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+/* ─── PREDICT FORM ─────────────────────────────────────────────────── */
+.sec-block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px 24px;
+  margin-bottom: 18px;
+}
+
+.sec-hdr {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.sec-num {
+  width: 28px; height: 28px;
+  background: var(--accent);
+  color: #000;
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.sec-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.sec-line { flex:1; height:1px; background:var(--border); }
+
+/* gender selector */
+.gender-row { display: flex; gap: 10px; }
+
+.gender-card {
+  flex: 1;
+  padding: 16px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  cursor: pointer;
+  text-align: center;
+  transition: all var(--transition);
+  user-select: none;
+}
+
+.gender-card:hover { border-color: var(--dim); background: var(--hover); }
+
+.gender-card.sel {
+  border-color: var(--purple);
+  background: rgba(167,139,250,0.1);
+}
+
+.gender-card .g-icon { font-size: 1.8rem; margin-bottom: 6px; }
+
+.gender-card .g-lbl {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.gender-card.sel .g-lbl { color: var(--purple); }
+
+/* attribute block */
+.attr-wrap {
+  margin-bottom: 16px;
+}
+
+.attr-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+
+.attr-code {
+  font-family: 'Geist Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--accent);
+}
+
+.attr-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.attr-tip {
+  font-size: 0.63rem;
+  color: var(--muted);
+}
+
+/* option chips */
+.opts { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.opt {
+  flex: 1;
+  min-width: 100px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  cursor: pointer;
+  transition: all var(--transition);
+  position: relative;
+  user-select: none;
+}
+
+.opt:hover { border-color: var(--dim); background: var(--hover); }
+
+.opt-lbl {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+
+.opt-range {
+  font-size: 0.76rem;
+  font-family: 'Geist Mono', monospace;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.opt-note { font-size: 0.59rem; color: var(--muted); line-height: 1.3; }
+
+/* option states */
+.opt.sel-ok   { border-color: var(--green);  background: rgba(52,208,88,0.08); }
+.opt.sel-warn { border-color: var(--yellow); background: rgba(240,180,41,0.08); }
+.opt.sel-bad  { border-color: var(--red);    background: rgba(255,92,92,0.08); }
+
+.opt.sel-ok   .opt-lbl { color: var(--green); }
+.opt.sel-warn .opt-lbl { color: var(--yellow); }
+.opt.sel-bad  .opt-lbl { color: var(--red); }
+
+.opt.sel-ok::after,
+.opt.sel-warn::after,
+.opt.sel-bad::after {
+  content: '✓';
+  position: absolute;
+  top: 7px; right: 9px;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.opt.sel-ok::after   { color: var(--green); }
+.opt.sel-warn::after { color: var(--yellow); }
+.opt.sel-bad::after  { color: var(--red); }
+
+.dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
+.dot.ok   { background: rgba(52,208,88,0.5); }
+.dot.warn { background: rgba(240,180,41,0.5); }
+.dot.bad  { background: rgba(255,92,92,0.5); }
+
+/* progress bar */
+.prog-bar-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-bottom: 18px;
+}
+
+.prog-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.prog-label { font-size:0.65rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); }
+.prog-count { font-size:0.88rem; font-weight:600; color:var(--text); }
+.prog-count em { color:var(--accent); font-style:normal; }
+
+.prog-track { height:5px; background:var(--border); border-radius:99px; overflow:hidden; }
+.prog-fill  { height:100%; background:linear-gradient(90deg, var(--accent), var(--purple)); border-radius:99px; transition:width 0.4s ease; }
+
+/* predict button */
+.predict-btn {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: var(--radius);
+  font-family: 'Geist', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all var(--transition);
+  margin-bottom: 24px;
+}
+
+.predict-btn:disabled {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.predict-btn:not(:disabled) {
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(79,158,255,0.25);
+}
+
+.predict-btn:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(79,158,255,0.35);
+}
+
+/* ─── RESULT CARD ─────────────────────────────────────────────────── */
+#result-area { display: none; animation: fadeUp 0.5s cubic-bezier(.16,1,.3,1); }
+
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(20px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+.res-banner {
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.res-top {
+  padding: 24px 28px;
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  gap: 18px;
+  align-items: center;
+}
+
+.res-top.pos { background: linear-gradient(135deg, rgba(255,92,92,0.1), rgba(255,92,92,0.03)); border-bottom: 1px solid rgba(255,92,92,0.2); }
+.res-top.neg { background: linear-gradient(135deg, rgba(52,208,88,0.1),  rgba(52,208,88,0.03));  border-bottom: 1px solid rgba(52,208,88,0.2); }
+
+.res-icon-wrap {
+  width: 60px; height: 60px;
+  border-radius: 50%;
+  background: var(--card);
+  border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.8rem;
+}
+
+.res-verdict {
+  font-family: 'Instrument Serif', serif;
+  font-size: 1.7rem;
+  line-height: 1;
+}
+
+.res-verdict.pos { color: var(--red); }
+.res-verdict.neg { color: var(--green); }
+
+.res-meta { font-size: 0.7rem; color: var(--muted); margin-top: 5px; }
+.res-meta strong { color: var(--text); }
+
+.res-score-box { text-align: right; }
+
+.res-score-num {
+  font-family: 'Instrument Serif', serif;
+  font-size: 2.8rem;
+  line-height: 1;
+}
+
+.res-score-num.pos { color: var(--red); }
+.res-score-num.neg { color: var(--green); }
+
+.res-score-lbl { font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+
+.res-body {
+  padding: 22px 28px;
+  background: var(--surface);
+}
+
+.rbar-labels { display:flex; justify-content:space-between; font-size:0.62rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); margin-bottom:7px; }
+.rbar-track { height:10px; background:var(--card); border-radius:99px; overflow:hidden; border:1px solid var(--border); margin-bottom:20px; }
+.rbar-fill { height:100%; border-radius:99px; transition:width 1.2s cubic-bezier(.16,1,.3,1); }
+.rbar-fill.pos { background:linear-gradient(90deg, var(--yellow), var(--red)); }
+.rbar-fill.neg { background:linear-gradient(90deg, var(--green), #5effa0); }
+
+.factors-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.fac-item {
+  padding: 10px 13px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+}
+
+.fac-item.flagged { border-color: rgba(255,92,92,0.4); background: rgba(255,92,92,0.06); }
+
+.fac-code { font-family:'Geist Mono',monospace; font-size:0.6rem; color:var(--muted); margin-bottom:3px; }
+.fac-val  { font-size:0.84rem; font-weight:600; color:var(--text); }
+.fac-lbl  { font-size:0.58rem; margin-top:2px; }
+
+.fac-item.flagged .fac-code { color: var(--red); }
+.fac-item.flagged .fac-val  { color: var(--red); }
+.fac-lbl.ok   { color: var(--green); }
+.fac-lbl.warn { color: var(--yellow); }
+.fac-lbl.bad  { color: var(--red); }
+
+.bmi-strip { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:18px; }
+.info-chip { font-size:0.66rem; padding:4px 10px; border:1px solid var(--border); border-radius:6px; color:var(--muted); background:var(--card); font-family:'Geist Mono',monospace; }
+.info-chip strong { color:var(--text); }
+
+.disc {
+  padding: 12px 14px;
+  border: 1px solid rgba(240,180,41,0.3);
+  border-radius: 8px;
+  background: rgba(240,180,41,0.05);
+  font-size: 0.66rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.disc strong { color: var(--yellow); }
+
+.btn-reset {
+  margin-top: 14px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-family: 'Geist', sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.btn-reset:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ─── HISTORY TABLE ─────────────────────────────────────────────────── */
+.table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.table-scroll { overflow-x: auto; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+thead th {
+  padding: 11px 16px;
+  text-align: left;
+  font-size: 0.63rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+  white-space: nowrap;
+}
+
+tbody td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  white-space: nowrap;
+}
+
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: var(--hover); }
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+.badge.pos { background: rgba(255,92,92,0.12); color: var(--red);   border: 1px solid rgba(255,92,92,0.3); }
+.badge.neg { background: rgba(52,208,88,0.1);  color: var(--green); border: 1px solid rgba(52,208,88,0.3);  }
+
+.empty-state {
+  padding: 40px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+/* misc */
+.spinner {
+  display: inline-block;
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.alert {
+  padding: 10px 14px;
+  border-radius: 7px;
+  font-size: 0.76rem;
+  margin-bottom: 14px;
+  display: none;
+  line-height: 1.4;
+}
+
+.alert.err { background: rgba(255,92,92,0.1); border:1px solid rgba(255,92,92,0.3); color: var(--red); display:block; }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════
+     AUTH SCREEN
+════════════════════════════════════════════════ -->
+<div id="view-auth" class="view active">
+  <div class="auth-box">
+    <div class="auth-brand">
+      <div class="brand-logo">
+        <div class="brand-icon">🩺</div>
+        <div class="brand-name">Diabetes Predictor</div>
+      </div>
+      <div class="brand-sub">· Clinical Prediction Platform ·</div>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('login')">Sign In</button>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="form-login" class="auth-form active">
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input id="l-user" class="form-input" type="text" placeholder="Enter your username" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input id="l-pass" class="form-input" type="password" placeholder="Enter your password" autocomplete="current-password">
+      </div>
+      <button class="btn-primary" id="btn-login" onclick="doLogin()">Sign In</button>
+      <div id="login-msg" class="auth-msg"></div>
+    </div>
+
+    <div class="demo-hint">
+      <div style="font-size:0.64rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Demo Accounts</div>
+      <strong>admin</strong> / admin123 &nbsp;·&nbsp;
+      <strong>doctor1</strong> / doctor123 &nbsp;·&nbsp;
+      <strong>patient1</strong> / patient123
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     APP SHELL
+════════════════════════════════════════════════ -->
+<div id="view-app" class="view">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sb-brand">
+      <div class="sb-brand-icon">🩺</div>
+      <div class="sb-brand-name">DiabetesIQ</div>
+    </div>
+
+    <div class="sb-section">Navigation</div>
+    <div class="sb-link active" onclick="showPanel('dashboard')"><span class="ico">🏠</span> Dashboard</div>
+    <div class="sb-link" onclick="showPanel('predict')"><span class="ico">🧬</span> New Prediction</div>
+    <div class="sb-link" onclick="showPanel('history')"><span class="ico">📋</span> History</div>
+
+    <div class="sb-user">
+      <div class="sb-user-name" id="sb-uname">—</div>
+      <div class="sb-user-role" id="sb-role">—</div>
+      <button class="btn-logout" onclick="doLogout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- ── DASHBOARD ── -->
+    <div id="panel-dashboard" class="panel active">
+      <div class="page-hdr">
+        <h2>Welcome back, <span id="dash-name" style="color:var(--accent)">—</span></h2>
+        <p>Clinical diabetes prediction · Deep ANN (Acc 99.54%) + TabTransformer (Acc 98.96%)</p>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Total Assessments</div>
+          <div class="stat-val blue" id="st-total">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Diabetic Cases</div>
+          <div class="stat-val red" id="st-diabetic">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Non-Diabetic</div>
+          <div class="stat-val green" id="st-nond">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Average Risk Score</div>
+          <div class="stat-val yellow" id="st-avgrisk">—</div>
+        </div>
+      </div>
+
+      <div class="sec-block">
+        <div class="sec-hdr">
+          <div class="sec-num">ℹ</div>
+          <span class="sec-title">About this system</span>
+          <div class="sec-line"></div>
+        </div>
+        <p style="font-size:0.82rem;color:var(--muted);line-height:1.7;margin-bottom:12px">
+          This platform implements the <strong style="color:var(--text)">Deep ANN (5-layer)</strong> and
+          <strong style="color:var(--text)">TabTransformer</strong> models from the clinical diabetes
+          dataset notebook. Features used: <code style="font-family:'Geist Mono',monospace;font-size:0.78rem;color:var(--accent)">chol, stab.glu, hdl, ratio, age, height, weight, waist, hip, bp.1s, bp.1d, time.ppn</code> + gender.
+        </p>
+        <p style="font-size:0.82rem;color:var(--muted);line-height:1.7">
+          Target variable: <strong style="color:var(--red)">diabetes</strong> = 1 when <code style="font-family:'Geist Mono',monospace;font-size:0.78rem;color:var(--accent)">glyhb ≥ 7</code>,
+          else 0. Dataset: 4,416 patients · 111 diabetic · 4,305 non-diabetic.
+          All predictions are saved to <strong style="color:var(--text)">SQLite database</strong> with full audit trail.
+        </p>
+      </div>
+    </div>
+
+    <!-- ── PREDICT PANEL ── -->
+    <div id="panel-predict" class="panel">
+      <div class="page-hdr">
+        <h2>New Assessment</h2>
+        <p>Select a range for each attribute — all fields are required</p>
+      </div>
+
+      <!-- Progress -->
+      <div class="prog-bar-wrap">
+        <div class="prog-top">
+          <span class="prog-label">Completion</span>
+          <span class="prog-count"><em id="pc">0</em> / 13 fields</span>
+        </div>
+        <div class="prog-track"><div class="prog-fill" id="pfill" style="width:0%"></div></div>
+      </div>
+
+      <div id="pred-alert" class="alert" style="display:none"></div>
+
+      <!-- Section 0: Patient -->
+      <div class="sec-block">
+        <div class="sec-hdr">
+          <div class="sec-num">0</div>
+          <span class="sec-title">Patient Information</span>
+          <div class="sec-line"></div>
+        </div>
+        <div class="attr-wrap">
+          <div class="attr-title">
+            <div>
+              <div class="attr-code">gender</div>
+              <div class="attr-name">Biological Sex</div>
+            </div>
+            <div class="attr-tip">Present in original dataset — male / female</div>
+          </div>
+          <div class="gender-row">
+            <div class="gender-card" id="g-female" onclick="selGender('female')">
+              <div class="g-icon">♀</div>
+              <div class="g-lbl">Female</div>
+            </div>
+            <div class="gender-card" id="g-male" onclick="selGender('male')">
+              <div class="g-icon">♂</div>
+              <div class="g-lbl">Male</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 1: Metabolic -->
+      <div class="sec-block" id="sec-metabolic"></div>
+
+      <!-- Section 2: Physical -->
+      <div class="sec-block" id="sec-physical"></div>
+
+      <!-- Section 3: BP & Timing -->
+      <div class="sec-block" id="sec-bp"></div>
+
+      <button class="predict-btn" id="pred-btn" disabled onclick="submitPredict()">
+        Complete all fields to predict
+      </button>
+
+      <div id="result-area"></div>
+    </div>
+
+    <!-- ── HISTORY PANEL ── -->
+    <div id="panel-history" class="panel">
+      <div class="page-hdr">
+        <h2>Prediction History</h2>
+        <p id="hist-scope">Your previous assessments</p>
+      </div>
+      <div class="table-wrap">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Date</th>
+                <th>User</th>
+                <th>Gender</th>
+                <th>stab.glu</th>
+                <th>HDL</th>
+                <th>Ratio</th>
+                <th>Age</th>
+                <th>Risk %</th>
+                <th>Result</th>
+                <th>Flags</th>
+              </tr>
+            </thead>
+            <tbody id="hist-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ─── Field Definitions ────────────────────────────────────────────────────────
+const SECTIONS = [
+  {
+    id: 'sec-metabolic', num: '1', title: 'Metabolic Panel',
+    fields: [
+      {
+        id:'chol', code:'chol', name:'Total Cholesterol', unit:'mg/dL',
+        tip:'Normal <200 | Borderline 200–239 | High ≥240',
+        opts:[
+          { lbl:'Normal',     range:'< 200 mg/dL',   note:'Low cardiovascular risk',     val:160, cls:'ok'   },
+          { lbl:'Borderline', range:'200 – 239',      note:'Monitor lipid levels',        val:220, cls:'warn' },
+          { lbl:'High',       range:'≥ 240 mg/dL',   note:'Elevated risk',               val:270, cls:'bad'  },
+        ]
+      },
+      {
+        id:'stab_glu', code:'stab.glu', name:'Stabilised Glucose', unit:'mg/dL',
+        tip:'Strongest predictor of glyhb ≥ 7 — diabetic diagnosis threshold',
+        opts:[
+          { lbl:'Normal',      range:'< 100',          note:'Healthy fasting glucose',    val:85,  cls:'ok'   },
+          { lbl:'Pre-diabetic',range:'100 – 125',       note:'Impaired fasting glucose',   val:112, cls:'warn' },
+          { lbl:'Diabetic',    range:'126 – 199',       note:'High — diabetes likely',     val:160, cls:'bad'  },
+          { lbl:'Very High',   range:'≥ 200 mg/dL',    note:'Severely elevated glucose',  val:260, cls:'bad'  },
+        ]
+      },
+      {
+        id:'hdl', code:'hdl', name:'HDL "Good" Cholesterol', unit:'mg/dL',
+        tip:'Protective factor — higher HDL lowers diabetes risk (inverse relationship)',
+        opts:[
+          { lbl:'High (Best)', range:'≥ 60 mg/dL',    note:'Strong cardiac protection',   val:70,  cls:'ok'   },
+          { lbl:'Moderate',    range:'40 – 59',        note:'Partial protection',          val:50,  cls:'warn' },
+          { lbl:'Low',         range:'< 40 mg/dL',    note:'Increased metabolic risk',    val:28,  cls:'bad'  },
+        ]
+      },
+      {
+        id:'ratio', code:'ratio', name:'Chol / HDL Ratio', unit:'value',
+        tip:'Total cholesterol ÷ HDL — lower is better; >7 = high risk',
+        opts:[
+          { lbl:'Optimal',    range:'< 3.5',           note:'Ideal metabolic profile',    val:2.8, cls:'ok'   },
+          { lbl:'Normal',     range:'3.5 – 5.0',       note:'Acceptable range',           val:4.2, cls:'ok'   },
+          { lbl:'Borderline', range:'5.0 – 7.0',       note:'Elevated risk',              val:6.0, cls:'warn' },
+          { lbl:'High Risk',  range:'> 7.0',           note:'Significantly elevated',     val:8.5, cls:'bad'  },
+        ]
+      },
+    ]
+  },
+  {
+    id: 'sec-physical', num: '2', title: 'Physical Measurements',
+    fields: [
+      {
+        id:'age', code:'age', name:'Age', unit:'years',
+        tip:'Risk increases significantly after 45 — highest after 60',
+        opts:[
+          { lbl:'Young Adult', range:'20 – 34 yrs',   note:'Minimal age-related risk',   val:27,  cls:'ok'   },
+          { lbl:'Middle Age',  range:'35 – 44 yrs',   note:'Low baseline age risk',      val:40,  cls:'ok'   },
+          { lbl:'Mature',      range:'45 – 59 yrs',   note:'Moderate risk window',       val:52,  cls:'warn' },
+          { lbl:'Senior',      range:'60 – 90 yrs',   note:'Highest age-related risk',   val:70,  cls:'bad'  },
+        ]
+      },
+      {
+        id:'height', code:'height', name:'Height', unit:'inches',
+        tip:'Used to compute BMI proxy (weight ÷ height²) — dataset range 55–80in',
+        opts:[
+          { lbl:'Short',   range:'55 – 62 in',        note:'< 5 ft 3 in',                val:59,  cls:'ok'   },
+          { lbl:'Average', range:'63 – 68 in',        note:"5'3\" – 5'8\"",              val:66,  cls:'ok'   },
+          { lbl:'Tall',    range:'69 – 80 in',        note:'> 5 ft 9 in',                val:73,  cls:'ok'   },
+        ]
+      },
+      {
+        id:'weight', code:'weight', name:'Body Weight', unit:'lbs',
+        tip:'Obesity greatly increases insulin resistance; BMI computed automatically',
+        opts:[
+          { lbl:'Lean',       range:'90 – 149 lbs',   note:'Below average weight',       val:130, cls:'ok'   },
+          { lbl:'Normal',     range:'150 – 185 lbs',  note:'Healthy weight range',       val:168, cls:'ok'   },
+          { lbl:'Overweight', range:'186 – 230 lbs',  note:'Elevated BMI risk',          val:208, cls:'warn' },
+          { lbl:'Obese',      range:'> 230 lbs',      note:'Significantly elevated',     val:265, cls:'bad'  },
+        ]
+      },
+      {
+        id:'waist', code:'waist', name:'Waist Circumference', unit:'inches',
+        tip:'Men >40in | Women >35in = abdominal obesity (high T2DM risk)',
+        opts:[
+          { lbl:'Healthy',   range:'25 – 32 in',      note:'Low abdominal fat',          val:30,  cls:'ok'   },
+          { lbl:'Moderate',  range:'33 – 39 in',      note:'Watch visceral fat',         val:36,  cls:'warn' },
+          { lbl:'High Risk', range:'≥ 40 in',         note:'Abdominal obesity',          val:44,  cls:'bad'  },
+        ]
+      },
+      {
+        id:'hip', code:'hip', name:'Hip Circumference', unit:'inches',
+        tip:'Used for waist-to-hip ratio (WHR) — key body composition indicator',
+        opts:[
+          { lbl:'Small',  range:'28 – 36 in',         note:'Petite or lean frame',       val:33,  cls:'ok'   },
+          { lbl:'Medium', range:'37 – 44 in',         note:'Average frame',              val:41,  cls:'ok'   },
+          { lbl:'Large',  range:'> 44 in',            note:'Larger frame',               val:50,  cls:'warn' },
+        ]
+      },
+    ]
+  },
+  {
+    id: 'sec-bp', num: '3', title: 'Blood Pressure & Timing',
+    fields: [
+      {
+        id:'bp1s', code:'bp.1s', name:'Systolic BP', unit:'mmHg',
+        tip:'Normal <120 | Elevated 120–129 | Stage 1: 130–139 | Stage 2: ≥140',
+        opts:[
+          { lbl:'Normal',  range:'< 120 mmHg',       note:'Ideal systolic pressure',     val:112, cls:'ok'   },
+          { lbl:'Elevated',range:'120 – 129',         note:'Watch for progression',       val:125, cls:'warn' },
+          { lbl:'Stage 1', range:'130 – 139',         note:'Hypertension Stage 1',        val:135, cls:'warn' },
+          { lbl:'Stage 2', range:'≥ 140 mmHg',       note:'Hypertension Stage 2',        val:158, cls:'bad'  },
+        ]
+      },
+      {
+        id:'bp1d', code:'bp.1d', name:'Diastolic BP', unit:'mmHg',
+        tip:'Normal <80 | Elevated 80–89 | Stage 1 Hypertension ≥90 mmHg',
+        opts:[
+          { lbl:'Normal',  range:'< 80 mmHg',         note:'Healthy diastolic',          val:72,  cls:'ok'   },
+          { lbl:'Elevated',range:'80 – 89',            note:'Borderline diastolic',       val:85,  cls:'warn' },
+          { lbl:'High',    range:'≥ 90 mmHg',         note:'Diastolic hypertension',     val:98,  cls:'bad'  },
+        ]
+      },
+      {
+        id:'time_ppn', code:'time.ppn', name:'Post-Prandial Time', unit:'minutes',
+        tip:'Minutes since last meal — affects glucose reading interpretation',
+        opts:[
+          { lbl:'Fasting',    range:'0 – 30 min',      note:'Near-fasting state',         val:15,  cls:'ok'   },
+          { lbl:'Short PP',   range:'31 – 120 min',    note:'1–2 hrs post-meal',          val:75,  cls:'ok'   },
+          { lbl:'Extended PP',range:'121 – 240 min',   note:'2–4 hrs post-meal',          val:180, cls:'warn' },
+          { lbl:'Long PP',    range:'> 240 min',       note:'>4 hrs, context matters',    val:300, cls:'bad'  },
+        ]
+      },
+    ]
+  },
+];
+
+// ─── State ────────────────────────────────────────────────────────────────────
+const SEL = {};
+let gender = null;
+const TOTAL = 13; // 12 fields + gender
+
+// ─── Build sections ───────────────────────────────────────────────────────────
+SECTIONS.forEach(sec => {
+  const wrap = document.getElementById(sec.id);
+  let html = `
+    <div class="sec-hdr">
+      <div class="sec-num">${sec.num}</div>
+      <span class="sec-title">${sec.title}</span>
+      <div class="sec-line"></div>
+    </div>`;
+
+  sec.fields.forEach(f => {
+    html += `
+      <div class="attr-wrap" id="wrap-${f.id}">
+        <div class="attr-title">
+          <div>
+            <div class="attr-code">${f.code} · <span style="color:var(--muted)">${f.unit}</span></div>
+            <div class="attr-name">${f.name}</div>
+          </div>
+          <div class="attr-tip">${f.tip}</div>
+        </div>
+        <div class="opts">
+          ${f.opts.map((o,i) => `
+            <div class="opt" id="opt-${f.id}-${i}" onclick="selOpt('${f.id}',${i})">
+              <div class="opt-lbl"><span class="dot ${o.cls}"></span>${o.lbl}</div>
+              <div class="opt-range">${o.range}</div>
+              <div class="opt-note">${o.note}</div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+  });
+  wrap.innerHTML = html;
+});
+
+// ─── Selection handlers ───────────────────────────────────────────────────────
+function selGender(g) {
+  gender = g;
+  document.getElementById('g-female').className = 'gender-card' + (g==='female'?' sel':'');
+  document.getElementById('g-male').className   = 'gender-card' + (g==='male'  ?' sel':'');
+  updateProg();
+}
+
+function selOpt(fid, idx) {
+  let field, sectionField;
+  for (const sec of SECTIONS) {
+    sectionField = sec.fields.find(f => f.id === fid);
+    if (sectionField) { field = sectionField; break; }
+  }
+  const opt = field.opts[idx];
+
+  // Clear previous
+  field.opts.forEach((_, i) => {
+    document.getElementById(`opt-${fid}-${i}`).className = 'opt';
+  });
+
+  document.getElementById(`opt-${fid}-${idx}`).className = `opt sel-${opt.cls}`;
+  SEL[fid] = { val: opt.val, cls: opt.cls, label: opt.lbl, range: opt.range, code: field.code };
+  updateProg();
+}
+
+function updateProg() {
+  const done = Object.keys(SEL).length + (gender ? 1 : 0);
+  document.getElementById('pc').textContent = done;
+  document.getElementById('pfill').style.width = Math.round((done / TOTAL) * 100) + '%';
+  const btn = document.getElementById('pred-btn');
+  if (done >= TOTAL) {
+    btn.disabled = false;
+    btn.textContent = '▶  Run Diabetes Prediction';
+  } else {
+    btn.disabled = true;
+    btn.textContent = `Complete all fields  (${TOTAL - done} remaining)`;
+  }
+}
+
+// ─── Submit prediction ────────────────────────────────────────────────────────
+async function submitPredict() {
+  const alert = document.getElementById('pred-alert');
+  alert.style.display = 'none';
+  alert.className = 'alert';
+
+  if (Object.keys(SEL).length < 12 || !gender) {
+    alert.textContent = '⚠ Please complete all fields before running the prediction.';
+    alert.className = 'alert err';
+    return;
+  }
+
+  const payload = { gender };
+  SECTIONS.forEach(sec => {
+    sec.fields.forEach(f => {
+      payload[f.id]           = SEL[f.id].val;
+      payload[f.id + '_label'] = SEL[f.id].label;
+    });
+  });
+
+  const btn = document.getElementById('pred-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Computing...';
+
+  try {
+    const res  = await api('/api/predict', 'POST', payload);
+    renderResult(res, payload);
+    await loadStats();
+  } catch (e) {
+    alert.textContent = '⚠ ' + (e.message || 'Prediction failed. Are you logged in?');
+    alert.className = 'alert err';
+    btn.disabled = false;
+    btn.textContent = '▶  Run Prediction';
+  }
+}
+
+function renderResult(res, payload) {
+  const pos  = res.prediction === 'Diabetic';
+  const area = document.getElementById('result-area');
+  area.style.display = 'block';
+
+  // Build factor chips
+  const allCodes = SECTIONS.flatMap(s => s.fields.map(f => ({
+    code: f.code, id: f.id, unit: f.unit
+  })));
+
+  const chips = allCodes.map(f => {
+    const s = SEL[f.id];
+    const flagged = s.cls === 'bad';
+    return `
+      <div class="fac-item ${flagged ? 'flagged' : ''}">
+        <div class="fac-code">${f.code}${flagged ? ' ⚑' : ''}</div>
+        <div class="fac-val">${s.val} ${f.unit}</div>
+        <div class="fac-lbl ${s.cls}">${s.label}</div>
+      </div>`;
+  }).join('');
+
+  area.innerHTML = `
+    <div class="res-banner">
+      <div class="res-top ${pos ? 'pos' : 'neg'}">
+        <div class="res-icon-wrap">${pos ? '⚠️' : '✅'}</div>
+        <div>
+          <div class="res-verdict ${pos ? 'pos' : 'neg'}">${pos ? 'Elevated Diabetes Risk' : 'Low Diabetes Risk'}</div>
+          <div class="res-meta">
+            <strong>${res.prediction}</strong> &nbsp;·&nbsp;
+            Probability: <strong>${res.probability}%</strong> &nbsp;·&nbsp;
+            Gender: <strong style="text-transform:capitalize">${gender}</strong> &nbsp;·&nbsp;
+            ${res.flagged_count} risk flag${res.flagged_count !== 1 ? 's' : ''} &nbsp;·&nbsp;
+            <span style="color:var(--accent);font-family:'Geist Mono',monospace;font-size:0.68rem">ID #${res.prediction_id}</span>
+          </div>
+        </div>
+        <div class="res-score-box">
+          <div class="res-score-num ${pos ? 'pos' : 'neg'}">${res.risk_score}<span style="font-size:1.2rem">%</span></div>
+          <div class="res-score-lbl">Risk Score</div>
+        </div>
+      </div>
+
+      <div class="res-body">
+        <div class="rbar-labels"><span>Low Risk</span><span>Threshold: 50%</span><span>High Risk</span></div>
+        <div class="rbar-track">
+          <div class="rbar-fill ${pos ? 'pos' : 'neg'}" id="rbar" style="width:0%"></div>
+        </div>
+
+        <div class="bmi-strip">
+          <span class="info-chip">BMI (est.): <strong>${res.bmi}</strong></span>
+          <span class="info-chip">Model: <strong>Deep ANN 5-Layer</strong></span>
+          <span class="info-chip">Acc: <strong>99.54%</strong></span>
+          <span class="info-chip">AUC: <strong>0.9995</strong></span>
+          <span class="info-chip">Saved to: <strong>SQLite DB</strong></span>
+        </div>
+
+        <div style="font-size:0.63rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">
+          Selected Values · ${res.flagged_count} high-risk attribute${res.flagged_count!==1?'s':''}
+        </div>
+
+        <div class="factors-grid">
+          <div class="fac-item">
+            <div class="fac-code">gender</div>
+            <div class="fac-val" style="text-transform:capitalize">${gender}</div>
+            <div class="fac-lbl ok">Patient Info</div>
+          </div>
+          ${chips}
+        </div>
+
+        <div class="disc">
+          <strong>⚠ Disclaimer:</strong> This tool simulates the trained ANN model for educational purposes.
+          It is <em>not</em> a certified clinical device. Predictions are stored in the SQLite database for audit.
+          Always consult a qualified healthcare professional for diagnosis and treatment.
+        </div>
+
+        <button class="btn-reset" onclick="resetForm()">↩ New Assessment</button>
+      </div>
+    </div>
+  `;
+
+  setTimeout(() => {
+    const b = document.getElementById('rbar');
+    if (b) b.style.width = res.risk_score + '%';
+  }, 80);
+
+  area.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function resetForm() {
+  Object.keys(SEL).forEach(k => delete SEL[k]);
+  gender = null;
+
+  SECTIONS.forEach(sec => {
+    sec.fields.forEach(f => {
+      f.opts.forEach((_, i) => {
+        document.getElementById(`opt-${f.id}-${i}`).className = 'opt';
+      });
+    });
+  });
+
+  document.getElementById('g-female').className = 'gender-card';
+  document.getElementById('g-male').className   = 'gender-card';
+  document.getElementById('result-area').style.display = 'none';
+  document.getElementById('pred-alert').style.display  = 'none';
+  updateProg();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ─── History ───────────────────────────────────────────────────────────────────
+async function loadHistory() {
+  try {
+    const rows = await api('/api/history');
+    const tbody = document.getElementById('hist-body');
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="11"><div class="empty-state">No predictions yet</div></td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(r => `
+      <tr>
+        <td style="font-family:'Geist Mono',monospace;color:var(--muted)">#${r.id}</td>
+        <td style="color:var(--muted)">${r.created_at.split('T')[0] || r.created_at.slice(0,10)}</td>
+        <td>${r.full_name || r.username}</td>
+        <td style="text-transform:capitalize">${r.gender || '—'}</td>
+        <td style="font-family:'Geist Mono',monospace">${r.stab_glu}</td>
+        <td style="font-family:'Geist Mono',monospace">${r.hdl}</td>
+        <td style="font-family:'Geist Mono',monospace">${r.ratio}</td>
+        <td style="font-family:'Geist Mono',monospace">${r.age}</td>
+        <td><span style="font-family:'Geist Mono',monospace;color:${r.risk_score>=50?'var(--red)':'var(--green)'}">${r.risk_score}%</span></td>
+        <td><span class="badge ${r.prediction==='Diabetic'?'pos':'neg'}">${r.prediction}</span></td>
+        <td style="color:${r.flagged_count>0?'var(--red)':'var(--muted)'}">${r.flagged_count}</td>
+      </tr>`).join('');
+  } catch(e) { console.error(e); }
+}
+
+// ─── Stats ─────────────────────────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const s = await api('/api/stats');
+    document.getElementById('st-total').textContent    = s.total    ?? 0;
+    document.getElementById('st-diabetic').textContent = s.diabetic  ?? 0;
+    document.getElementById('st-nond').textContent     = s.non_diabetic ?? 0;
+    document.getElementById('st-avgrisk').textContent  = (s.avg_risk ?? 0) + '%';
+  } catch(e) {}
+}
+
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', (i===0 && tab==='login') || (i===1 && tab==='register')));
+  document.getElementById('form-login').classList.toggle('active', tab==='login');
+  document.getElementById('form-register').classList.toggle('active', tab==='register');
+}
+
+async function doLogin() {
+  const btn = document.getElementById('btn-login');
+  const msg = document.getElementById('login-msg');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Signing in...';
+  msg.style.display = 'none';
+
+  try {
+    const res = await api('/api/login', 'POST', {
+      username: document.getElementById('l-user').value,
+      password: document.getElementById('l-pass').value,
+    });
+    showApp(res);
+  } catch(e) {
+    msg.textContent = e.message || 'Login failed';
+    msg.className = 'auth-msg error';
+    msg.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Sign In';
+  }
+}
+
+async function doLogout() {
+  await api('/api/logout', 'POST');
+  session = {};
+  document.getElementById('view-auth').classList.add('active');
+  document.getElementById('view-app').classList.remove('active');
+  document.getElementById('l-user').value = '';
+  document.getElementById('l-pass').value = '';
+  document.getElementById('btn-login').disabled = false;
+  document.getElementById('btn-login').textContent = 'Sign In';
+}
+
+// ─── App navigation ───────────────────────────────────────────────────────────
+let session = {};
+
+function showApp(user) {
+  session = user;
+  document.getElementById('view-auth').classList.remove('active');
+  document.getElementById('view-app').classList.add('active');
+  document.getElementById('sb-uname').textContent  = user.full_name || user.username;
+  document.getElementById('sb-role').textContent   = user.role;
+  document.getElementById('dash-name').textContent = (user.full_name || user.username).split(' ')[0];
+
+  const isStaff = ['admin','doctor'].includes(user.role);
+  document.getElementById('hist-scope').textContent = isStaff
+    ? 'All patient predictions (admin/doctor view)'
+    : 'Your previous assessments';
+
+  showPanel('dashboard');
+  loadStats();
+}
+
+function showPanel(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sb-link').forEach(l => l.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+
+  const links = document.querySelectorAll('.sb-link');
+  const idx = ['dashboard','predict','history'].indexOf(name);
+  if (idx >= 0) links[idx].classList.add('active');
+
+  if (name === 'history') loadHistory();
+}
+
+// ─── API helper ────────────────────────────────────────────────────────────────
+async function api(url, method = 'GET', body = null) {
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res  = await fetch(url, opts);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+// ─── Auto-check session on load ────────────────────────────────────────────────
+(async () => {
+  try {
+    const me = await api('/api/me');
+    if (me.authenticated) showApp(me);
+  } catch(e) {}
+})();
+</script>
+</body>
+</html>
