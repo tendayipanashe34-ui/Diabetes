@@ -349,7 +349,7 @@ else:
         with col1:
             st.metric("Total Predictions", stats.get("total", 0))
         with col2:
-            st.metric("Diabetic Cases", stats.get("diabetic", 0))
+            st.metric("Diabetic Cases", stats.get("diabetic", 1))
         with col3:
             st.metric("Non-Diabetic Cases", stats.get("non_diabetic", 0))
         with col4:
@@ -380,7 +380,7 @@ else:
             chol = st.number_input("Total Cholesterol (mg/dL)", min_value=50.0, max_value=400.0, value=207.0)
             hdl = st.number_input("HDL Cholesterol (mg/dL)", min_value=10.0, max_value=200.0, value=50.0)
             ratio = st.number_input("Chol/HDL Ratio", min_value=1.0, max_value=15.0, value=4.5)
-            stab_glu = st.number_input("Fasting Glucose (mg/dL)", min_value=50.0, max_value=300.0, value=107.0)
+            #stab_glu = st.number_input("Fasting Glucose (mg/dL)", min_value=50.0, max_value=300.0, value=107.0)
             
             st.write("**Blood Pressure & Timing**")
             bp1s = st.number_input("Systolic BP (mmHg)", min_value=70.0, max_value=250.0, value=136.0)
@@ -483,7 +483,7 @@ else:
         with col1:
             st.metric("Total Predictions", stats.get("total", 0))
         with col2:
-            st.metric("Diabetic Cases", stats.get("diabetic", 0))
+            st.metric("Diabetic Cases", stats.get("diabetic", 1))
         with col3:
             st.metric("Non-Diabetic Cases", stats.get("non_diabetic", 0))
         with col4:
