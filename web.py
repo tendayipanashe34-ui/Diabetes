@@ -40,7 +40,7 @@ def init_db():
             password_hash TEXT    NOT NULL,
             full_name     TEXT,
             email         TEXT,
-            role          TEXT    DEFAULT 'patient',
+            role          TEXT,
             created_at    TEXT    DEFAULT (datetime('now'))
         );
 
