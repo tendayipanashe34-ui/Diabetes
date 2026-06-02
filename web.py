@@ -291,6 +291,7 @@ if not st.session_state.authenticated:
         username = st.text_input("Username", key="login_username")
         password = st.text_input("Password", type="password", key="login_password")
         
+        
         if st.button("Login"):
             user = login(username, password)
             if user:
@@ -310,6 +311,7 @@ if not st.session_state.authenticated:
         new_password = st.text_input("Password", type="password", key="reg_password")
         full_name = st.text_input("Full Name", key="reg_fullname")
         email = st.text_input("Email", key="reg_email")
+        role = st.text_input("Role", key="reg_role")
         
         if st.button("Create Account"):
             success, message = register(new_username, new_password, full_name, email)
