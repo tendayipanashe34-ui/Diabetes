@@ -340,7 +340,7 @@ else:
     
     elif page == "Dashboard":
         st.subheader("Dashboard")
-        st.write(f"Welcome back, {st.session_state.full_name}!")
+        st.write(f"Hi, {st.session_state.full_name}!")
         
         # Display quick stats
         stats = get_stats(st.session_state.user_id, st.session_state.role)
