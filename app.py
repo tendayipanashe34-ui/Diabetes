@@ -15,7 +15,7 @@ from flask import ( # type: ignore
 )
 
 app = Flask(__name__)
-app.secret_key = "diabetes-prediction-dev-key-2024"  # fixed key for development
+app.secret_key = os.urandom(24)          # change to fixed key in production
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "diabetes.db")
 
@@ -54,8 +54,7 @@ def init_db():
                 gender        TEXT,
                 -- metabolic
                 chol          REAL,   chol_label      TEXT,
-                    stab_glu      REAL,   stab_glu_label  TEXT,
-                    diabetes      REAL,   diabetes_label  TEXT,
+                stab_glu      REAL,   stab_glu_label  TEXT,
                 hdl           REAL,   hdl_label       TEXT,
                 ratio         REAL,   ratio_label     TEXT,
                 -- physical
@@ -80,16 +79,6 @@ def init_db():
         db.commit()
         # seed demo accounts
         _seed_users(db)
-        # Ensure older databases gain the new columns
-        try:
-            db.execute("ALTER TABLE predictions ADD COLUMN diabetes REAL")
-        except sqlite3.OperationalError:
-            pass
-        try:
-            db.execute("ALTER TABLE predictions ADD COLUMN diabetes_label TEXT")
-        except sqlite3.OperationalError:
-            pass
-        db.commit()
 
 def _hash(pw):
     return hashlib.sha256(pw.encode()).hexdigest()
@@ -167,23 +156,39 @@ def compute_probability(v, gender):
 def index():
     if "user_id" in session:
         return redirect(url_for("dashboard"))
-    # Serve index.html from root directory
-    with open(os.path.join(os.path.dirname(__file__), "index.html"), "r") as f:
-        return f.read()
+    return render_template("index.html")
 
 @app.route("/dashboard")
 def dashboard():
     if "user_id" not in session:
         return redirect(url_for("index"))
-    # Serve index.html from root directory
-    with open(os.path.join(os.path.dirname(__file__), "index.html"), "r") as f:
-        return f.read()
+    return render_template("index.html")
 
 # ── Auth API ──
 
 @app.route("/api/register", methods=["POST"])
 def register():
-    return jsonify({"error": "Registration is disabled."}), 403
+    data = request.get_json()
+    username  = (data.get("username") or "").strip()
+    password  = data.get("password") or ""
+    full_name = (data.get("full_name") or "").strip()
+    email     = (data.get("email") or "").strip()
+
+    if not username or not password:
+        return jsonify({"error": "Username and password are required"}), 400
+    if len(password) < 6:
+        return jsonify({"error": "Password must be at least 6 characters"}), 400
+
+    db = get_db()
+    try:
+        db.execute(
+            "INSERT INTO users (username,password_hash,full_name,email) VALUES (?,?,?,?)",
+            (username, _hash(password), full_name, email)
+        )
+        db.commit()
+        return jsonify({"message": "Account created successfully"})
+    except sqlite3.IntegrityError:
+        return jsonify({"error": "Username already exists"}), 409
 
 @app.route("/api/login", methods=["POST"])
 def login():
@@ -231,7 +236,7 @@ def me():
 @login_required
 def predict():
     data = request.get_json()
-    required = ["gender","chol","stab_glu","diabetes","hdl","ratio","age",
+    required = ["gender","chol","stab_glu","hdl","ratio","age",
                 "height","weight","waist","hip","bp1s","bp1d","time_ppn"]
     for k in required:
         if k not in data:
@@ -261,7 +266,6 @@ def predict():
         """INSERT INTO predictions (
             user_id, gender,
             chol, chol_label, stab_glu, stab_glu_label,
-            diabetes, diabetes_label,
             hdl, hdl_label, ratio, ratio_label,
             age, age_label, height, height_label,
             weight, weight_label, waist, waist_label,
@@ -273,7 +277,6 @@ def predict():
             session["user_id"], gender,
             nums["chol"],     data.get("chol_label",""),
             nums["stab_glu"], data.get("stab_glu_label",""),
-            nums.get("diabetes", 0.0), data.get("diabetes_label",""),
             nums["hdl"],      data.get("hdl_label",""),
             nums["ratio"],    data.get("ratio_label",""),
             nums["age"],      data.get("age_label",""),
@@ -348,17 +351,3 @@ def reports():
         return render_template("reports.html", reports=reports_data)
     except FileNotFoundError:
         return jsonify({"error": "Reports not available"}), 404
-
-@app.route("/model-results")
-@login_required
-def model_results():
-    try:
-        with open('model_results.json', 'r') as f:
-            results_data = json.load(f)
-        return render_template("model_results.html", results=results_data)
-    except FileNotFoundError:
-        return jsonify({"error": "Model results not available"}), 404
-
-if __name__ == "__main__":
-    init_db()
-    app.run(debug=True)
