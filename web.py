@@ -123,7 +123,7 @@ def login(username, password):
         return dict(user)
     return None
 
-def register(username, password, full_name, email):
+def register(username, password, full_name, email,role):
     """Register new user."""
     if not username or not password:
         return False, "Username and password are required"
@@ -135,7 +135,7 @@ def register(username, password, full_name, email):
     
     try:
         cursor.execute(
-            "INSERT INTO users (username,password_hash,full_name,email) VALUES (?,?,?,?)",
+            "INSERT INTO users (username,password_hash,full_name,email,role) VALUES (?,?,?,?)",
             (username, _hash(password), full_name, email)
         )
         conn.commit()
@@ -290,6 +290,7 @@ if not st.session_state.authenticated:
         st.subheader("Login")
         username = st.text_input("Username", key="login_username")
         password = st.text_input("Password", type="password", key="login_password")
+        role = st.text_input("Role", key = "login_role")
         
         
         if st.button("Login"):
