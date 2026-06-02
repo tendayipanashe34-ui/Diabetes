@@ -315,7 +315,7 @@ if not st.session_state.authenticated:
         role = st.text_input("Role", key="reg_role")
         
         if st.button("Create Account"):
-            success, message = register(new_username, new_password, full_name, email)
+            success, message = register(new_username, new_password, full_name, email, role)
             if success:
                 st.success(message)
             else:
