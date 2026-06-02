@@ -40,7 +40,7 @@ def init_db():
             password_hash TEXT    NOT NULL,
             full_name     TEXT,
             email         TEXT,
-            role          TEXT,
+            role          TEXT    DEFAULT 'patient',
             created_at    TEXT    DEFAULT (datetime('now'))
         );
 
@@ -123,7 +123,7 @@ def login(username, password):
         return dict(user)
     return None
 
-def register(username, password, full_name, email, role):
+def register(username, password, full_name, email):
     """Register new user."""
     if not username or not password:
         return False, "Username and password are required"
@@ -135,8 +135,8 @@ def register(username, password, full_name, email, role):
     
     try:
         cursor.execute(
-            "INSERT INTO users (username,password_hash,full_name,email,role) VALUES (?,?,?,?)",
-            (username, _hash(password), full_name, email, role)
+            "INSERT INTO users (username,password_hash,full_name,email) VALUES (?,?,?,?)",
+            (username, _hash(password), full_name, email)
         )
         conn.commit()
         conn.close()
@@ -290,8 +290,6 @@ if not st.session_state.authenticated:
         st.subheader("Login")
         username = st.text_input("Username", key="login_username")
         password = st.text_input("Password", type="password", key="login_password")
-        role = st.text_input("Role", key = "login_role")
-        
         
         if st.button("Login"):
             user = login(username, password)
@@ -312,10 +310,9 @@ if not st.session_state.authenticated:
         new_password = st.text_input("Password", type="password", key="reg_password")
         full_name = st.text_input("Full Name", key="reg_fullname")
         email = st.text_input("Email", key="reg_email")
-        role = st.text_input("Role", key="reg_role")
         
         if st.button("Create Account"):
-            success, message = register(new_username, new_password, full_name, email, role)
+            success, message = register(new_username, new_password, full_name, email)
             if success:
                 st.success(message)
             else:
@@ -343,7 +340,7 @@ else:
     
     elif page == "Dashboard":
         st.subheader("Dashboard")
-        st.write(f"Hi, {st.session_state.full_name}!")
+        st.write(f"Welcome back, {st.session_state.full_name}!")
         
         # Display quick stats
         stats = get_stats(st.session_state.user_id, st.session_state.role)
@@ -388,7 +385,7 @@ else:
             st.write("**Blood Pressure & Timing**")
             bp1s = st.number_input("Systolic BP (mmHg)", min_value=70.0, max_value=250.0, value=136.0)
             bp1d = st.number_input("Diastolic BP (mmHg)", min_value=40.0, max_value=150.0, value=83.0)
-            time_ppn = st.number_input("Time Post Meal (min)", min_value=30.0, max_value=300.0, value=90.0)
+            time_ppn = st.number_input("Time Post Meal (min)", min_value=30.0, max_value=720.0, value=90.0)
         
         if st.button("🔮 Predict Risk", key="predict_btn"):
             # Prepare data
