@@ -123,7 +123,7 @@ def login(username, password):
         return dict(user)
     return None
 
-def register(username, password, full_name, email,role):
+def register(username, password, full_name, email, role):
     """Register new user."""
     if not username or not password:
         return False, "Username and password are required"
