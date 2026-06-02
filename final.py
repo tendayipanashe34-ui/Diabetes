@@ -2,7 +2,7 @@
 Diabetes Prediction — Streamlit Application
 Frontend  : Streamlit
 Auth      : Session-based (username + hashed password)
-Database  : SQLite (users, predictions tables)
+Database  : SQLite (users, predictions, notifications tables)
 Model     : Deep ANN logistic scoring (mirrors notebook)
 """
 
@@ -14,6 +14,9 @@ import json
 import math
 from datetime import datetime
 from pathlib import Path
+import pandas as pd
+import plotly.graph_objects as go
+import plotly.express as px
 
 # ─── Page Configuration ─────────────────────────────────────────────────────
 
@@ -40,7 +43,7 @@ def init_db():
             password_hash TEXT    NOT NULL,
             full_name     TEXT,
             email         TEXT,
-            role          TEXT    DEFAULT 'patient',
+            role          TEXT    NOT NULL,
             created_at    TEXT    DEFAULT (datetime('now'))
         );
 
@@ -66,6 +69,19 @@ def init_db():
             flagged_count INTEGER,
             created_at    TEXT    DEFAULT (datetime('now')),
             FOREIGN KEY(user_id) REFERENCES users(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS notifications (
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id       INTEGER NOT NULL,
+            prediction_id INTEGER,
+            title         TEXT,
+            message       TEXT,
+            recommendations TEXT,
+            is_read       INTEGER DEFAULT 0,
+            created_at    TEXT    DEFAULT (datetime('now')),
+            FOREIGN KEY(user_id) REFERENCES users(id),
+            FOREIGN KEY(prediction_id) REFERENCES predictions(id)
         );
     """)
     conn.commit()
@@ -123,20 +139,22 @@ def login(username, password):
         return dict(user)
     return None
 
-def register(username, password, full_name, email):
-    """Register new user."""
+def register(username, password, full_name, email, role="patient"):
+    """Register new user with explicit role specification."""
     if not username or not password:
         return False, "Username and password are required"
     if len(password) < 6:
         return False, "Password must be at least 6 characters"
+    if role not in ("patient", "doctor", "admin"):
+        return False, "Invalid role specified"
     
     conn = get_db()
     cursor = conn.cursor()
     
     try:
         cursor.execute(
-            "INSERT INTO users (username,password_hash,full_name,email) VALUES (?,?,?,?)",
-            (username, _hash(password), full_name, email)
+            "INSERT INTO users (username,password_hash,full_name,email,role) VALUES (?,?,?,?,?)",
+            (username, _hash(password), full_name, email, role)
         )
         conn.commit()
         conn.close()
@@ -221,6 +239,130 @@ def save_prediction(user_id, data, prob, prediction, flags):
             round(prob * 100, 1), round(prob, 4), prediction, flags,
         )
     )
+    
+    pred_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    
+    return pred_id
+
+# ─── Notification Functions ────────────────────────────────────────────────
+
+def create_notification(user_id, prediction_id, risk_score, prediction, data):
+    """Create a structured notification with greeting and recommendations."""
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    # Get user info
+    user = cursor.execute("SELECT full_name FROM users WHERE id=?", (user_id,)).fetchone()
+    user_name = user["full_name"] if user else "User"
+    
+    # Create title and greeting
+    if prediction == "Diabetic":
+        title = "⚠️ High Diabetes Risk Detected"
+        greeting = f"Hello {user_name},\n\nYour recent health assessment shows a high diabetes risk."
+    else:
+        title = "✅ Low Diabetes Risk"
+        greeting = f"Hello {user_name},\n\nGreat news! Your health assessment shows a low diabetes risk."
+    
+    # Generate recommendations
+    recommendations = _generate_recommendations(risk_score, data)
+    
+    message = f"""{greeting}
+
+**Your Results:**
+• Risk Score: {risk_score}%
+• Prediction: {prediction}
+• Assessment Date: {datetime.now().strftime('%Y-%m-%d %H:%M')}
+
+Please review the recommendations below and consult with your healthcare provider if needed."""
+    
+    cursor.execute(
+        """INSERT INTO notifications 
+           (user_id, prediction_id, title, message, recommendations, is_read)
+           VALUES (?, ?, ?, ?, ?, 0)""",
+        (user_id, prediction_id, title, message, recommendations)
+    )
+    
+    conn.commit()
+    conn.close()
+
+def _generate_recommendations(risk_score, data):
+    """Generate personalized recommendations based on risk score and health metrics."""
+    recommendations = []
+    
+    if risk_score >= 80:
+        recommendations.extend([
+            "🚨 IMMEDIATE ACTIONS REQUIRED:",
+            "• Schedule an urgent appointment with your doctor",
+            "• Get comprehensive blood work and glucose tolerance tests",
+            "• Consider endocrinologist referral",
+            "• Start daily glucose monitoring",
+            "• Review medication options with healthcare provider"
+        ])
+    elif risk_score >= 50:
+        recommendations.extend([
+            "⚠️ RECOMMENDED ACTIONS:",
+            "• Schedule doctor checkup within 2 weeks",
+            "• Get HbA1c test (3-month glucose average)",
+            "• Begin home glucose monitoring 2-3 times weekly",
+            "• Work with a nutritionist on meal planning",
+            "• Start regular exercise program (150 min/week)"
+        ])
+    else:
+        recommendations.extend([
+            "✅ MAINTENANCE ACTIONS:",
+            "• Continue annual health checkups",
+            "• Maintain regular physical activity",
+            "• Follow healthy eating habits",
+            "• Monitor weight quarterly",
+            "• Follow preventive screening recommendations"
+        ])
+    
+    # Add dietary recommendations
+    recommendations.append("\n🍽️ DIETARY TIPS:")
+    if data["stab_glu"] >= 126:
+        recommendations.append("• Reduce refined sugars and simple carbohydrates")
+    if data["chol"] >= 200:
+        recommendations.append("• Reduce saturated fats and increase omega-3 intake")
+    if data["hdl"] < 40:
+        recommendations.append("• Increase intake of healthy fats (nuts, avocado, fish)")
+    
+    recommendations.append("\n💪 EXERCISE RECOMMENDATIONS:")
+    bmi = (data["weight"] * 703) / (data["height"] ** 2)
+    if bmi >= 30:
+        recommendations.append("• Focus on low-impact cardio (walking, swimming)")
+    recommendations.append("• Aim for 150 minutes of moderate activity per week")
+    recommendations.append("• Include strength training 2-3 times per week")
+    
+    return "\n".join(recommendations)
+
+def get_notifications(user_id, unread_only=False):
+    """Get user notifications."""
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    if unread_only:
+        rows = cursor.execute(
+            """SELECT * FROM notifications WHERE user_id=? AND is_read=0 
+               ORDER BY created_at DESC""",
+            (user_id,)
+        ).fetchall()
+    else:
+        rows = cursor.execute(
+            """SELECT * FROM notifications WHERE user_id=? 
+               ORDER BY created_at DESC LIMIT 50""",
+            (user_id,)
+        ).fetchall()
+    
+    conn.close()
+    return [dict(r) for r in rows]
+
+def mark_notification_read(notification_id):
+    """Mark notification as read."""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE notifications SET is_read=1 WHERE id=?", (notification_id,))
     conn.commit()
     conn.close()
 
@@ -263,6 +405,28 @@ def get_stats(user_id, role):
     
     conn.close()
     return dict(row) if row else {}
+
+def get_trend_data(user_id, role):
+    """Get trend data for graphs."""
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    if role in ("admin", "doctor"):
+        rows = cursor.execute("""
+            SELECT created_at, risk_score, prediction
+            FROM predictions
+            ORDER BY created_at ASC
+        """).fetchall()
+    else:
+        rows = cursor.execute("""
+            SELECT created_at, risk_score, prediction
+            FROM predictions
+            WHERE user_id=?
+            ORDER BY created_at ASC
+        """, (user_id,)).fetchall()
+    
+    conn.close()
+    return [dict(r) for r in rows]
 
 # ─── Precautions & Recommendations ────────────────────────────────────────
 
@@ -455,7 +619,7 @@ if "authenticated" not in st.session_state:
 if not Path(DB_PATH).exists():
     init_db()
 
-# ─── Main App ──────────────────────────────────────────────────────────────
+# ─── Main App ───────────────────────────────────────────────────────────────
 
 if not st.session_state.authenticated:
     # Authentication Page
@@ -487,9 +651,10 @@ if not st.session_state.authenticated:
         new_password = st.text_input("Password", type="password", key="reg_password")
         full_name = st.text_input("Full Name", key="reg_fullname")
         email = st.text_input("Email", key="reg_email")
+        role = st.selectbox("Role", ["patient", "doctor", "admin"], key="reg_role")
         
         if st.button("Create Account"):
-            success, message = register(new_username, new_password, full_name, email)
+            success, message = register(new_username, new_password, full_name, email, role)
             if success:
                 st.success(message)
             else:
@@ -499,12 +664,23 @@ else:
     # Main Application
     st.title("🩺 Diabetes Prediction System")
     
+    # Display unread notifications badge
+    unread_notifications = get_notifications(st.session_state.user_id, unread_only=True)
+    notification_badge = f" ({len(unread_notifications)})" if unread_notifications else ""
+    
     # Sidebar
     with st.sidebar:
         st.write(f"**User:** {st.session_state.full_name}")
         st.write(f"**Role:** {st.session_state.role.capitalize()}")
         
-        page = st.radio("Navigation", ["Dashboard", "Predict", "History", "Statistics", "Logout"])
+        # Build navigation options based on role
+        nav_options = ["Dashboard", "History", "Statistics", "Notifications", "Logout"]
+        
+        # Only patients can predict
+        if st.session_state.role == "patient":
+            nav_options.insert(1, "Predict")
+        
+        page = st.radio("Navigation", nav_options)
     
     if page == "Logout":
         st.session_state.authenticated = False
@@ -534,7 +710,15 @@ else:
             if avg_risk is None:
                 avg_risk = 0
             st.metric("Avg Risk Score", f"{avg_risk:.1f}%")
-            
+        
+        # Show role-based welcome message
+        st.markdown("---")
+        if st.session_state.role == "admin":
+            st.info("👨‍💼 **Admin Dashboard**: View system statistics and manage users")
+        elif st.session_state.role == "doctor":
+            st.info("👨‍⚕️ **Doctor Dashboard**: Monitor patient predictions and provide recommendations")
+        else:
+            st.info("👤 **Patient Dashboard**: Track your health and manage predictions")
     
     elif page == "Predict":
         st.subheader("Diabetes Risk Prediction")
@@ -615,7 +799,10 @@ else:
                 flagged_features.append(f"🔴 Age ≥ 60: {int(age)} years")
             
             # Save to database
-            save_prediction(st.session_state.user_id, data, prob, prediction, flags)
+            pred_id = save_prediction(st.session_state.user_id, data, prob, prediction, flags)
+            
+            # Create notification
+            create_notification(st.session_state.user_id, pred_id, risk_score, prediction, data)
             
             # Display results
             st.success("Prediction completed!")
@@ -653,6 +840,9 @@ else:
             
             # Display precautions and recommendations
             display_precautions(data, risk_score)
+            
+            # Show notification info
+            st.info("📬 A detailed notification has been sent to your account. Check the Notifications page.")
     
     elif page == "History":
         st.subheader("Prediction History")
@@ -687,15 +877,145 @@ else:
         with col1:
             st.metric("Total Predictions", stats.get("total", 0))
         with col2:
-            st.metric("Diabetic Cases", stats.get("diabetic", 1))
+            st.metric("Diabetic Cases", stats.get("diabetic", 0))
         with col3:
             st.metric("Non-Diabetic Cases", stats.get("non_diabetic", 0))
         with col4:
             st.metric("Avg Risk Score", f"{stats.get('avg_risk', 0):.1f}%")
         
-        # Calculate percentages
-        total = stats.get("total", 1)
-        diabetic_pct = (stats.get("diabetic", 1) / total * 100) if total > 0 else 0
+        st.markdown("---")
         
-        st.write(f"**Diabetic Percentage:** {diabetic_pct:.1f}%")
-        st.write(f"**Non-Diabetic Percentage:** {100 - diabetic_pct:.1f}%")
+        # Get trend data
+        trend_data = get_trend_data(st.session_state.user_id, st.session_state.role)
+        
+        if trend_data:
+            # Convert to DataFrame for easier manipulation
+            df = pd.DataFrame(trend_data)
+            df['created_at'] = pd.to_datetime(df['created_at'])
+            
+            # Calculate percentages
+            total = stats.get("total", 1)
+            diabetic = stats.get("diabetic", 0)
+            non_diabetic = stats.get("non_diabetic", 0)
+            diabetic_pct = (diabetic / total * 100) if total > 0 else 0
+            non_diabetic_pct = 100 - diabetic_pct
+            
+            # Risk distribution pie chart
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.subheader("📊 Prediction Distribution")
+                fig_pie = go.Figure(data=[go.Pie(
+                    labels=['Diabetic', 'Non-Diabetic'],
+                    values=[diabetic, non_diabetic],
+                    marker=dict(colors=['#FF6B6B', '#51CF66']),
+                    textposition='inside',
+                    textinfo='label+percent'
+                )])
+                fig_pie.update_layout(height=400, showlegend=True)
+                st.plotly_chart(fig_pie, use_container_width=True)
+            
+            with col2:
+                st.subheader("📈 Risk Score Distribution")
+                fig_hist = go.Figure(data=[go.Histogram(
+                    x=df['risk_score'],
+                    nbinsx=15,
+                    marker=dict(color='#4C72B0')
+                )])
+                fig_hist.update_xaxes(title_text="Risk Score (%)")
+                fig_hist.update_yaxes(title_text="Frequency")
+                fig_hist.update_layout(height=400)
+                st.plotly_chart(fig_hist, use_container_width=True)
+            
+            # Risk score trend over time
+            st.subheader("📈 Risk Score Trend Over Time")
+            df_sorted = df.sort_values('created_at')
+            fig_trend = go.Figure()
+            
+            fig_trend.add_trace(go.Scatter(
+                x=df_sorted['created_at'],
+                y=df_sorted['risk_score'],
+                mode='lines+markers',
+                name='Risk Score',
+                line=dict(color='#FF9999', width=3),
+                marker=dict(size=8)
+            ))
+            
+            fig_trend.add_hline(y=50, line_dash="dash", line_color="orange", 
+                               annotation_text="Moderate Risk Threshold (50%)")
+            fig_trend.add_hline(y=80, line_dash="dash", line_color="red",
+                               annotation_text="High Risk Threshold (80%)")
+            
+            fig_trend.update_xaxes(title_text="Date")
+            fig_trend.update_yaxes(title_text="Risk Score (%)")
+            fig_trend.update_layout(height=400, hovermode='x unified')
+            st.plotly_chart(fig_trend, use_container_width=True)
+            
+            # Risk category breakdown
+            st.subheader("🎯 Risk Category Breakdown")
+            high_risk = len(df[df['risk_score'] >= 80])
+            moderate_risk = len(df[(df['risk_score'] >= 50) & (df['risk_score'] < 80)])
+            low_risk = len(df[df['risk_score'] < 50])
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("🚨 High Risk (≥80%)", high_risk)
+            with col2:
+                st.metric("⚠️ Moderate Risk (50-80%)", moderate_risk)
+            with col3:
+                st.metric("✅ Low Risk (<50%)", low_risk)
+            
+            # Bar chart for risk categories
+            fig_bar = go.Figure(data=[
+                go.Bar(x=['Low Risk', 'Moderate Risk', 'High Risk'],
+                       y=[low_risk, moderate_risk, high_risk],
+                       marker=dict(color=['#51CF66', '#FFD93D', '#FF6B6B']))
+            ])
+            fig_bar.update_yaxes(title_text="Number of Cases")
+            fig_bar.update_layout(height=400)
+            st.plotly_chart(fig_bar, use_container_width=True)
+            
+        else:
+            st.info("No prediction data available for analysis.")
+    
+    elif page == "Notifications":
+        st.subheader("📬 Notifications")
+        
+        notifications = get_notifications(st.session_state.user_id)
+        
+        if notifications:
+            # Filter tabs
+            col1, col2 = st.columns(2)
+            with col1:
+                unread_count = len([n for n in notifications if not n['is_read']])
+                st.metric("Unread Notifications", unread_count)
+            
+            for notif in notifications:
+                with st.container():
+                    st.markdown("---")
+                    
+                    # Header with title and date
+                    col1, col2 = st.columns([4, 1])
+                    with col1:
+                        st.write(f"**{notif['title']}**")
+                        st.caption(f"📅 {notif['created_at']}")
+                    with col2:
+                        status = "✅ Read" if notif['is_read'] else "🆕 New"
+                        st.caption(status)
+                    
+                    # Message
+                    st.write(notif['message'])
+                    
+                    # Recommendations
+                    if notif['recommendations']:
+                        with st.expander("📋 View Recommendations"):
+                            st.text(notif['recommendations'])
+                    
+                    # Mark as read button
+                    if not notif['is_read']:
+                        if st.button("Mark as Read", key=f"notif_{notif['id']}"):
+                            mark_notification_read(notif['id'])
+                            st.success("Notification marked as read!")
+                            st.rerun()
+        else:
+            st.info("📭 No notifications available.")
