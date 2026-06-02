@@ -247,17 +247,56 @@ def save_prediction(user_id, data, prob, prediction, flags):
     return pred_id
 
 # ─── Notification Functions ────────────────────────────────────────────────
-cursor.execute("""
-    CREATE TABLE IF NOT EXISTS notifications (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id TEXT NOT NULL,
-        message TEXT NOT NULL,
-        is_read INTEGER DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-""")
-conn.commit()
+# Add this function to final.py (near your other database functions)
 
+def init_database():
+    """Initialize all required database tables"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Create notifications table (the missing one)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            message TEXT NOT NULL,
+            type TEXT DEFAULT 'info',
+            is_read INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(user_id)
+        )
+    ''')
+    
+    # Create users table (if not exists)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            user_id TEXT PRIMARY KEY,
+            username TEXT UNIQUE NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Create predictions table (if you have one)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS predictions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            prediction_result INTEGER,
+            probability REAL,
+            input_data TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(user_id)
+        )
+    ''')
+    
+    conn.commit()
+    conn.close()
+
+# Call this function at the START of your app (after st.set_page_config)
+# Add this line in the main section:
+# init_database()
 def create_notification(user_id, prediction_id, risk_score, prediction, data):
     """Create a structured notification with greeting and recommendations."""
     conn = get_db()
