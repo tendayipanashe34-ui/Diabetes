@@ -264,6 +264,183 @@ def get_stats(user_id, role):
     conn.close()
     return dict(row) if row else {}
 
+# ─── Precautions & Recommendations ────────────────────────────────────────
+
+def get_dietary_recommendations(data):
+    """Get dietary recommendations based on health metrics."""
+    recommendations = {
+        "foods_to_eat": [],
+        "foods_to_avoid": [],
+        "general_tips": []
+    }
+    
+    # High glucose recommendations
+    if data["stab_glu"] >= 126:
+        recommendations["foods_to_avoid"].append("🚫 Refined sugars & simple carbs (soda, candy, white bread)")
+        recommendations["foods_to_eat"].append("✅ Whole grains & high-fiber foods (oats, brown rice, vegetables)")
+    
+    # High cholesterol recommendations
+    if data["chol"] >= 200:
+        recommendations["foods_to_avoid"].append("🚫 Saturated fats & trans fats (butter, fatty meats, fried foods)")
+        recommendations["foods_to_eat"].append("✅ Lean proteins, fish rich in omega-3, olive oil")
+    
+    # Low HDL recommendations
+    if data["hdl"] < 40:
+        recommendations["foods_to_eat"].append("✅ Foods with healthy fats (nuts, avocado, fatty fish)")
+        recommendations["general_tips"].append("💪 Regular aerobic exercise 30-45 minutes daily")
+    
+    # High BMI recommendations
+    bmi = (data["weight"] * 703) / (data["height"] ** 2)
+    if bmi >= 30:
+        recommendations["foods_to_avoid"].append("🚫 Processed foods & sugary beverages")
+        recommendations["general_tips"].append("⚖️ Aim for gradual weight loss (1-2 lbs/week)")
+        recommendations["general_tips"].append("🥗 Increase vegetable intake to 50% of plate")
+    
+    # High blood pressure
+    if data["bp1s"] >= 140:
+        recommendations["foods_to_avoid"].append("🚫 High sodium foods (processed foods, salty snacks)")
+        recommendations["foods_to_eat"].append("✅ Potassium-rich foods (bananas, spinach, sweet potatoes)")
+        recommendations["general_tips"].append("🧂 Limit salt intake to <2,300mg/day")
+    
+    # General recommendations
+    recommendations["general_tips"].extend([
+        "💧 Drink plenty of water (8-10 glasses daily)",
+        "🍽️ Eat smaller, frequent meals to maintain stable blood sugar",
+        "🚶 Walk after meals to help control glucose levels",
+        "😴 Get 7-9 hours of quality sleep",
+        "🧘 Manage stress through meditation or yoga"
+    ])
+    
+    return recommendations
+
+def get_lifestyle_recommendations(data, risk_score):
+    """Get lifestyle recommendations based on risk level."""
+    recommendations = []
+    
+    if risk_score >= 80:
+        recommendations.extend([
+            "🚨 **IMMEDIATE ACTIONS:**",
+            "📋 Schedule doctor appointment immediately",
+            "🩸 Get comprehensive blood work & glucose tolerance test",
+            "🏥 Consider endocrinologist referral",
+            "📱 Monitor blood glucose daily if advised",
+            "💊 Discuss medication options with healthcare provider"
+        ])
+    elif risk_score >= 50:
+        recommendations.extend([
+            "⚠️ **RECOMMENDED ACTIONS:**",
+            "📅 Schedule doctor checkup within 2 weeks",
+            "🧪 Get HbA1c test (3-month average glucose)",
+            "📊 Monthly glucose monitoring at home",
+            "🎯 Work with nutritionist on meal planning",
+            "💪 Start structured exercise program (150 min/week)"
+        ])
+    else:
+        recommendations.extend([
+            "✅ **MAINTENANCE ACTIONS:**",
+            "🔄 Annual health checkups",
+            "🏃 Maintain regular physical activity",
+            "🥗 Continue healthy eating habits",
+            "⏱️ Monitor weight quarterly",
+            "👨‍⚕️ Preventive screening as recommended by doctor"
+        ])
+    
+    return recommendations
+
+def get_exercise_recommendations(data):
+    """Get personalized exercise recommendations."""
+    recommendations = []
+    bmi = (data["weight"] * 703) / (data["height"] ** 2)
+    
+    if bmi >= 35:
+        recommendations.append("🚴 Low-impact exercises: Swimming, cycling, water aerobics (start 20-30 min)")
+        recommendations.append("🧘 Gentle yoga or Pilates for flexibility")
+    elif bmi >= 30:
+        recommendations.append("🏃 Moderate cardio: Brisk walking, jogging (150 min/week)")
+        recommendations.append("🏋️ Strength training 2-3 times/week")
+    else:
+        recommendations.append("🏃 Maintain cardio: 150-300 min/week moderate intensity")
+        recommendations.append("🏋️ Strength training 2+ times/week")
+    
+    recommendations.extend([
+        "🚶 Walk 5-10 minutes after each meal",
+        "⏰ Avoid prolonged sitting (stand/move every hour)"
+    ])
+    
+    return recommendations
+
+def display_precautions(data, risk_score):
+    """Display comprehensive precautions and recommendations."""
+    
+    st.markdown("---")
+    st.subheader("📋 Personalized Precautions & Recommendations")
+    
+    # Dietary Recommendations
+    with st.expander("🍽️ **Dietary Recommendations**", expanded=True):
+        diet_rec = get_dietary_recommendations(data)
+        
+        if diet_rec["foods_to_eat"]:
+            st.write("**✅ Foods to Eat:**")
+            for food in diet_rec["foods_to_eat"]:
+                st.write(food)
+        
+        if diet_rec["foods_to_avoid"]:
+            st.write("**🚫 Foods to Avoid:**")
+            for food in diet_rec["foods_to_avoid"]:
+                st.write(food)
+        
+        st.write("**💡 General Tips:**")
+        for tip in diet_rec["general_tips"]:
+            st.write(tip)
+    
+    # Lifestyle & Medical Recommendations
+    with st.expander("🏥 **Lifestyle & Medical Recommendations**", expanded=True):
+        lifestyle_rec = get_lifestyle_recommendations(data, risk_score)
+        for rec in lifestyle_rec:
+            st.write(rec)
+    
+    # Exercise Plan
+    with st.expander("💪 **Exercise Plan**", expanded=False):
+        exercise_rec = get_exercise_recommendations(data)
+        st.write("**Recommended Activities:**")
+        for ex in exercise_rec:
+            st.write(ex)
+    
+    # Monitoring Schedule
+    with st.expander("📊 **Monitoring & Follow-up Schedule**", expanded=False):
+        if risk_score >= 80:
+            st.write("**🚨 High Risk - Intensive Monitoring:**")
+            st.write("• Blood glucose: Daily")
+            st.write("• Doctor visits: Every 2-4 weeks")
+            st.write("• Lab work (HbA1c): Every 3 months")
+            st.write("• Blood pressure: 2-3 times/week")
+        elif risk_score >= 50:
+            st.write("**⚠️ Moderate Risk - Regular Monitoring:**")
+            st.write("• Blood glucose: 2-3 times/week")
+            st.write("• Doctor visits: Every 3 months")
+            st.write("• Lab work (HbA1c): Every 6 months")
+            st.write("• Blood pressure: Weekly")
+        else:
+            st.write("**✅ Low Risk - Standard Prevention:**")
+            st.write("• Blood glucose: Monthly")
+            st.write("• Doctor visits: Annual")
+            st.write("• Lab work (HbA1c): Annual")
+            st.write("• Blood pressure: Quarterly")
+    
+    # Warning Signs
+    with st.expander("🚨 **Warning Signs - When to Seek Immediate Medical Help**", expanded=False):
+        st.warning("""
+        Contact emergency services immediately if you experience:
+        • Sudden extreme thirst or frequent urination
+        • Unexplained weight loss (5+ lbs in weeks)
+        • Extreme fatigue or weakness
+        • Blurred vision or difficulty concentrating
+        • Fruity-smelling breath
+        • Nausea, vomiting, or abdominal pain
+        • Chest pain or shortness of breath
+        • Severe headache or dizziness
+        """)
+
 # ─── Streamlit Session State ──────────────────────────────────────────────
 
 if "authenticated" not in st.session_state:
@@ -356,7 +533,7 @@ else:
             avg_risk = stats.get('avg_risk')
             if avg_risk is None:
                 avg_risk = 0
-                st.metric("Avg Risk Score", f"{avg_risk:.1f}%")
+            st.metric("Avg Risk Score", f"{avg_risk:.1f}%")
             
     
     elif page == "Predict":
@@ -410,16 +587,32 @@ else:
             risk_score = round(prob * 100, 1)
             prediction = "Diabetic" if prob >= 0.5 else "Non-Diabetic"
             
-            # Count flags
+            # Count flags and track which ones
             flags = 0
-            if stab_glu >= 126: flags += 1
-            if ratio >= 7: flags += 1
-            if hdl < 40: flags += 1
+            flagged_features = []
+            
+            if stab_glu >= 126:
+                flags += 1
+                flagged_features.append(f"🔴 High Fasting Glucose: {stab_glu} mg/dL (≥ 126)")
+            if ratio >= 7:
+                flags += 1
+                flagged_features.append(f"🔴 High Chol/HDL Ratio: {ratio:.1f} (≥ 7)")
+            if hdl < 40:
+                flags += 1
+                flagged_features.append(f"🔴 Low HDL Cholesterol: {hdl} mg/dL (< 40)")
             bmi = (weight * 703) / (height ** 2)
-            if bmi >= 30: flags += 1
-            if bp1s >= 140: flags += 1
-            if waist >= 40: flags += 1
-            if age >= 60: flags += 1
+            if bmi >= 30:
+                flags += 1
+                flagged_features.append(f"🔴 High BMI: {bmi:.1f} (≥ 30)")
+            if bp1s >= 140:
+                flags += 1
+                flagged_features.append(f"🔴 High Systolic BP: {bp1s} mmHg (≥ 140)")
+            if waist >= 40:
+                flags += 1
+                flagged_features.append(f"🔴 High Waist Circumference: {waist} inches (≥ 40)")
+            if age >= 60:
+                flags += 1
+                flagged_features.append(f"🔴 Age ≥ 60: {int(age)} years")
             
             # Save to database
             save_prediction(st.session_state.user_id, data, prob, prediction, flags)
@@ -442,6 +635,14 @@ else:
                 st.metric("High-Risk Flags", flags)
                 st.write(f"**WHR:** {waist/hip:.2f}")
             
+            # Display flagged features
+            if flagged_features:
+                st.subheader("🚩 Flagged Risk Factors")
+                for feature in flagged_features:
+                    st.warning(feature)
+            else:
+                st.success("✅ No high-risk factors detected!")
+            
             # Risk assessment
             if risk_score >= 80:
                 st.warning("⚠️ **High Risk** - Immediate medical consultation recommended")
@@ -449,6 +650,9 @@ else:
                 st.info("⚠️ **Moderate Risk** - Schedule a checkup with your doctor")
             else:
                 st.success("✅ **Low Risk** - Continue healthy lifestyle habits")
+            
+            # Display precautions and recommendations
+            display_precautions(data, risk_score)
     
     elif page == "History":
         st.subheader("Prediction History")
