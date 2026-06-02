@@ -1,7 +1,7 @@
 import os
+from pathlib import Path
 
 import streamlit as st
-import streamlit.components.v1 as components
 
 st.set_page_config(
     page_title="WIFD Website",
@@ -19,10 +19,8 @@ html_path = os.path.join(os.path.dirname(__file__), "wifd.html")
 if not os.path.exists(html_path):
     st.error(f"Could not find `wifd.html` at: {html_path}")
 else:
-    with open(html_path, "r", encoding="utf-8") as html_file:
-        html = html_file.read()
-
-    components.html(html, height=1000, scrolling=True)
+    iframe_url = Path(html_path).resolve().as_uri()
+    st.iframe(iframe_url, height=1000)
 
     st.sidebar.header("WIFD Launcher")
     st.sidebar.markdown(
