@@ -247,6 +247,16 @@ def save_prediction(user_id, data, prob, prediction, flags):
     return pred_id
 
 # ─── Notification Functions ────────────────────────────────────────────────
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS notifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL,
+        message TEXT NOT NULL,
+        is_read INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+""")
+conn.commit()
 
 def create_notification(user_id, prediction_id, risk_score, prediction, data):
     """Create a structured notification with greeting and recommendations."""
