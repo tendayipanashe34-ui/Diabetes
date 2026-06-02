@@ -136,7 +136,7 @@ def register(username, password, full_name, email,role):
     try:
         cursor.execute(
             "INSERT INTO users (username,password_hash,full_name,email,role) VALUES (?,?,?,?)",
-            (username, _hash(password), full_name, email)
+            (username, _hash(password), full_name, email, role)
         )
         conn.commit()
         conn.close()
