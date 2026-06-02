@@ -491,7 +491,7 @@ else:
         
         # Calculate percentages
         total = stats.get("total", 1)
-        diabetic_pct = (stats.get("diabetic", 0) / total * 100) if total > 0 else 0
+        diabetic_pct = (stats.get("diabetic", 1) / total * 100) if total > 0 else 0
         
         st.write(f"**Diabetic Percentage:** {diabetic_pct:.1f}%")
         st.write(f"**Non-Diabetic Percentage:** {100 - diabetic_pct:.1f}%")
