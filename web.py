@@ -353,7 +353,7 @@ else:
         with col3:
             st.metric("Non-Diabetic Cases", stats.get("non_diabetic", 0))
         with col4:
-            st.metric("Avg Risk Score", f"{stats.get('avg_risk', 0):.1f}%")
+            st.metric("Avg Risk Score", f"{stats.get('avg_risk', 0):.1f}")
     
     elif page == "Predict":
         st.subheader("Diabetes Risk Prediction")
