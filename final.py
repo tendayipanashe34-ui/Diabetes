@@ -626,7 +626,7 @@ if "authenticated" not in st.session_state:
 if not Path(DB_PATH).exists():
     init_db()
 
-# ─── Main App ─────────────────────────────────────────────────────────────
+# ─── Main App ────────────────────────────────────────────────────────────
 
 if not st.session_state.authenticated:
     # Authentication Page
@@ -671,8 +671,8 @@ else:
     # Main Application
     st.title("🩺 Diabetes Prediction System")
     
-    # Display unread notifications badge
-    unread_notifications = get_notifications(st.session_state.user_id, unread_only=True)
+    # Display unread notifications badge (only if user_id is valid)
+    unread_notifications = [] if st.session_state.user_id is None else get_notifications(st.session_state.user_id, unread_only=True)
     
     # Sidebar
     with st.sidebar:
