@@ -9,14 +9,11 @@ Model     : Deep ANN logistic scoring (mirrors notebook)
 import streamlit as st
 import sqlite3
 import hashlib
-import os
-import json
 import math
 from datetime import datetime
 from pathlib import Path
 import pandas as pd
 import plotly.graph_objects as go
-import plotly.express as px
 
 # ─── Page Configuration ─────────────────────────────────────────────────────
 
@@ -247,56 +244,7 @@ def save_prediction(user_id, data, prob, prediction, flags):
     return pred_id
 
 # ─── Notification Functions ────────────────────────────────────────────────
-# Add this function to final.py (near your other database functions)
 
-def init_database():
-    """Initialize all required database tables"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    # Create notifications table (the missing one)
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS notifications (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id TEXT NOT NULL,
-            message TEXT NOT NULL,
-            type TEXT DEFAULT 'info',
-            is_read INTEGER DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(user_id)
-        )
-    ''')
-    
-    # Create users table (if not exists)
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            user_id TEXT PRIMARY KEY,
-            username TEXT UNIQUE NOT NULL,
-            email TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    
-    # Create predictions table (if you have one)
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS predictions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id TEXT NOT NULL,
-            prediction_result INTEGER,
-            probability REAL,
-            input_data TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(user_id)
-        )
-    ''')
-    
-    conn.commit()
-    conn.close()
-
-# Call this function at the START of your app (after st.set_page_config)
-# Add this line in the main section:
-# init_database()
 def create_notification(user_id, prediction_id, risk_score, prediction, data):
     """Create a structured notification with greeting and recommendations."""
     conn = get_db()
@@ -442,15 +390,25 @@ def get_stats(user_id, role):
     conn = get_db()
     cursor = conn.cursor()
     
-    scope = "" if role in ("admin","doctor") else f"WHERE user_id={user_id}"
-    row = cursor.execute(f"""
-        SELECT
-          COUNT(*) total,
-          SUM(CASE WHEN prediction='Diabetic' THEN 1 ELSE 0 END) diabetic,
-          SUM(CASE WHEN prediction='Non-Diabetic' THEN 1 ELSE 0 END) non_diabetic,
-          ROUND(AVG(risk_score),1) avg_risk
-        FROM predictions {scope}
-    """).fetchone()
+    if role in ("admin", "doctor"):
+        row = cursor.execute("""
+            SELECT
+              COUNT(*) total,
+              SUM(CASE WHEN prediction='Diabetic' THEN 1 ELSE 0 END) diabetic,
+              SUM(CASE WHEN prediction='Non-Diabetic' THEN 1 ELSE 0 END) non_diabetic,
+              ROUND(AVG(risk_score),1) avg_risk
+            FROM predictions
+        """).fetchone()
+    else:
+        row = cursor.execute("""
+            SELECT
+              COUNT(*) total,
+              SUM(CASE WHEN prediction='Diabetic' THEN 1 ELSE 0 END) diabetic,
+              SUM(CASE WHEN prediction='Non-Diabetic' THEN 1 ELSE 0 END) non_diabetic,
+              ROUND(AVG(risk_score),1) avg_risk
+            FROM predictions
+            WHERE user_id=?
+        """, (user_id,)).fetchone()
     
     conn.close()
     return dict(row) if row else {}
@@ -668,7 +626,7 @@ if "authenticated" not in st.session_state:
 if not Path(DB_PATH).exists():
     init_db()
 
-# ─── Main App ───────────────────────────────────────────────────────────────
+# ─── Main App ─────────────────────────────────────────────────────────────
 
 if not st.session_state.authenticated:
     # Authentication Page
@@ -715,7 +673,6 @@ else:
     
     # Display unread notifications badge
     unread_notifications = get_notifications(st.session_state.user_id, unread_only=True)
-    notification_badge = f" ({len(unread_notifications)})" if unread_notifications else ""
     
     # Sidebar
     with st.sidebar:
@@ -751,7 +708,7 @@ else:
         with col1:
             st.metric("Total Predictions", stats.get("total", 0))
         with col2:
-            st.metric("Diabetic Cases", stats.get("diabetic", 1))
+            st.metric("Diabetic Cases", stats.get("diabetic", 0))
         with col3:
             st.metric("Non-Diabetic Cases", stats.get("non_diabetic", 0))
         with col4:
