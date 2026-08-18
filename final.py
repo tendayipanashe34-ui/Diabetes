@@ -24,7 +24,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ─── Database Setup ─────────────────────────────────────────────────────────
+# ─── Database Setup ────────────────────────────────────────────────────────
 
 DB_PATH = "diabetes.db"
 
@@ -160,7 +160,7 @@ def register(username, password, full_name, email, role="patient"):
         conn.close()
         return False, "Username already exists"
 
-# ─── Prediction Model ──────────────────────────────────────────────────────
+# ─── Prediction Model ─────────────���────────────────────────────────────────
 
 def _zscore(v, mean, std):
     return (v - mean) / std
@@ -340,15 +340,14 @@ def get_notifications(user_id, unread_only=False):
     cursor = conn.cursor()
     
     if unread_only:
+        # Use a single-line SQL statement here to avoid accidental extra '?' characters
         rows = cursor.execute(
-            """SELECT * FROM notifications WHERE user_id=? AND is_read=0 
-               ORDER BY created_at DESC""",
+            "SELECT * FROM notifications WHERE user_id=? AND is_read=0 ORDER BY created_at DESC",
             (user_id,)
         ).fetchall()
     else:
         rows = cursor.execute(
-            """SELECT * FROM notifications WHERE user_id=? 
-               ORDER BY created_at DESC LIMIT 50""",
+            "SELECT * FROM notifications WHERE user_id=? ORDER BY created_at DESC LIMIT 50",
             (user_id,)
         ).fetchall()
     
@@ -626,7 +625,7 @@ if "authenticated" not in st.session_state:
 if not Path(DB_PATH).exists():
     init_db()
 
-# ─── Main App ────────────────────────────────────────────────────────────
+# ─── Main App ──────────────────────────────────────────────────────────
 
 if not st.session_state.authenticated:
     # Authentication Page
@@ -678,6 +677,13 @@ else:
     with st.sidebar:
         st.write(f"**User:** {st.session_state.full_name}")
         st.write(f"**Role:** {st.session_state.role.capitalize()}")
+        # show unread count in sidebar
+        try:
+            unread_count = len(unread_notifications)
+        except Exception:
+            unread_count = 0
+        if unread_count:
+            st.write(f"🔔 Unread Notifications: {unread_count}")
         
         # Build navigation options based on role
         nav_options = ["Dashboard", "History", "Statistics", "Notifications", "Logout"]
